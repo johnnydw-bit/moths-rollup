@@ -12,6 +12,8 @@ Flow:
 """
 
 import asyncio
+import os
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "/opt/render/project/src/.playwright"
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 
 
