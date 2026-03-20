@@ -30,7 +30,7 @@ from backend.sheets import (
     get_last_round_results,
     get_last_round_date,
 )
-from backend.scraper import scrape_players_sync
+from backend.scraper import scrape_players
 
 load_dotenv()
 
@@ -226,7 +226,7 @@ async def load_players(
 
     # Scrape player names
     try:
-        names = scrape_players_sync(ig_user, ig_pin, body.date)
+        names = await scrape_players(ig_user, ig_pin, body.date)
     except Exception as e:
         raise HTTPException(502, str(e))
 
