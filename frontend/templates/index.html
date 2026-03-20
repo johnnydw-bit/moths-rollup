@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="theme-color" content="#2D2B5B"/>
+  <title>MOTH's Rollup</title>
+  <link rel="manifest" href="/static/manifest.json"/>
+  <link rel="apple-touch-icon" href="/static/icon-192.png"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #2D2B5B;
+      padding: 12px 16px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-logo {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #2D2B5B;
+      font-family: Georgia, serif;
+      flex-shrink: 0;
+    }
+    .header-title { flex: 1; }
+    .header-title .club { color: #fff; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+    .header-title .society { color: #FFD700; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .header-back {
+      color: #FFD700; font-size: 26px; line-height: 1;
+      background: none; border: none; cursor: pointer; flex-shrink: 0;
+    }
+    .header-spacer { width: 26px; flex-shrink: 0; }
+
+    /* ── Screens ── */
+    .screen { display: none; flex-direction: column; flex: 1; }
+    .screen.active { display: flex; }
+
+    /* ── Screen 1: Start ── */
+    .s1-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+
+    .google-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: #EAF3DE; border: 1px solid #3B6D1160;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; font-weight: 500; color: #3B6D11;
+    }
+    .google-badge .dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #3B6D11; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .google-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid #2D2B5B40;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; font-weight: 500; color: #2D2B5B;
+      cursor: pointer; width: 100%;
+    }
+    .google-btn .g-dot { width: 14px; height: 14px; border-radius: 50%; background: #4285F4; flex-shrink: 0; }
+
+    .section-label {
+      font-size: 10px; font-weight: 600; color: #2D2B5B;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      border-bottom: 0.5px solid #2D2B5B30; padding-bottom: 4px;
+    }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-label { font-size: 10px; color: #2D2B5B; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    .field-input {
+      width: 100%; padding: 10px 12px;
+      border-radius: 8px; border: 1px solid #2D2B5B40;
+      font-size: 15px; background: #fff; color: #000;
+      -webkit-appearance: none;
+    }
+    .field-input:focus { outline: none; border-color: #2D2B5B; }
+
+    .pin-row { display: flex; gap: 10px; }
+    .pin-box {
+      flex: 1; height: 52px;
+      border-radius: 8px; border: 1.5px solid #2D2B5B40;
+      background: #fff; font-size: 24px; text-align: center;
+      color: #2D2B5B;
+    }
+    .pin-box:focus { outline: none; border-color: #2D2B5B; box-shadow: 0 0 0 3px #2D2B5B20; }
+
+    .divider { height: 0.5px; background: #2D2B5B20; }
+
+    .btn-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .big-btn {
+      border-radius: 12px; padding: 16px 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      border: none; cursor: pointer; font-family: inherit;
+    }
+    .big-btn .bi { font-size: 24px; }
+    .big-btn .bl { font-size: 13px; font-weight: 600; text-align: center; line-height: 1.3; }
+    .big-btn .bs { font-size: 10px; opacity: 0.7; text-align: center; }
+    .btn-navy { background: #2D2B5B; color: #fff; }
+    .btn-outline { background: #fff; color: #2D2B5B; border: 1.5px solid #2D2B5B !important; }
+
+    .status-bar {
+      text-align: center; font-size: 11px; font-weight: 500;
+      padding: 6px; border-radius: 20px;
+    }
+    .status-neutral { background: #2D2B5B15; color: #2D2B5B; }
+    .status-success { background: #EAF3DE; color: #3B6D11; }
+    .status-danger { background: #FCEBEB; color: #A32D2D; }
+
+    .error-box {
+      background: #FCEBEB; border: 1px solid #A32D2D30;
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 12px; color: #A32D2D; line-height: 1.5;
+    }
+    .error-retry { font-size: 11px; font-weight: 600; text-decoration: underline; margin-top: 4px; display: block; }
+
+    /* ── Screen 2: Score entry ── */
+    .autosave-bar {
+      display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+      padding: 4px 10px; background: #fff; border-bottom: 1px solid #ccc;
+    }
+    .autosave-dot { width: 7px; height: 7px; border-radius: 50%; background: #3B6D11; }
+    .autosave-dot.err { background: #A32D2D; }
+    .autosave-label { font-size: 10px; color: #3B6D11; }
+    .autosave-label.err { color: #A32D2D; }
+
+    /* Pure Excel-style spreadsheet */
+    .grid-wrap { flex: 1; overflow-y: auto; background: #fff; }
+    table.xl {
+      width: 100%; border-collapse: collapse;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    table.xl thead tr { background: #D9D9D9; }
+    table.xl thead th {
+      font-size: 10px; font-weight: 700; color: #000;
+      padding: 3px 4px; border: 1px solid #999; text-align: center;
+    }
+    table.xl thead th.left { text-align: left; }
+    table.xl tbody td {
+      font-size: 10px; color: #000;
+      padding: 2px 4px; border: 1px solid #ccc;
+      background: #fff; vertical-align: middle; line-height: 1.5;
+    }
+    table.xl tbody td.c { text-align: center; }
+    table.xl tbody td.sc {
+      text-align: center;
+      /* Score cell — plain, no styling, just like any other cell */
+    }
+    table.xl tbody td.nhc { text-align: center; white-space: nowrap; font-size: 9px; }
+    table.xl tbody td.sc input {
+      width: 100%; border: none; background: transparent;
+      font-size: 10px; text-align: center; color: #000;
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 0; outline: none;
+    }
+
+    /* ── Screen 3: Results ── */
+    .results-wrap { flex: 1; overflow-y: auto; background: #fff; }
+    table.rt {
+      width: 100%; border-collapse: collapse;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    table.rt thead tr { background: #2D2B5B; }
+    table.rt thead th {
+      font-size: 10px; font-weight: 600; color: #FFD700;
+      padding: 5px 6px; border: 1px solid #2D2B5B; text-align: center;
+    }
+    table.rt thead th.left { text-align: left; }
+    table.rt tbody td {
+      font-size: 10px; color: #000;
+      padding: 3px 6px; border: 1px solid #ccc;
+      background: #fff; vertical-align: middle;
+    }
+    table.rt tbody td.c { text-align: center; }
+    table.rt tbody tr.gold { background: #FFF9E0; }
+    table.rt tbody tr.silver { background: #F5F5F5; }
+    table.rt tbody tr.bronze { background: #FDF3ED; }
+    .medal { width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; }
+    .medal.g { background: #FFD700; color: #7A5C00; }
+    .medal.s { background: #C0C0C0; color: #444; }
+    .medal.b { background: #CD7F32; color: #fff; }
+
+    .results-footer { padding: 10px; background: #f5f5f0; }
+
+    /* ── Dialogs ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .dialog {
+      background: #fff; border-radius: 16px; padding: 20px;
+      width: 88%; max-width: 340px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .dialog-title { font-size: 15px; font-weight: 700; color: #2D2B5B; text-align: center; }
+    .dialog-body { font-size: 12px; color: #555; text-align: center; line-height: 1.6; }
+    .dialog-name {
+      font-size: 13px; font-weight: 600; color: #2D2B5B;
+      text-align: center; background: #f0f0f0; border-radius: 8px; padding: 8px;
+    }
+    .dialog-btns { display: flex; gap: 10px; }
+    .dialog-btn {
+      flex: 1; padding: 12px; border-radius: 10px; border: none;
+      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .btn-cancel { background: #e8e8e8; color: #555; }
+    .btn-confirm { background: #2D2B5B; color: #FFD700; }
+    .btn-danger { background: #A32D2D; color: #fff; }
+    .hc-number {
+      width: 100%; padding: 12px; border-radius: 10px;
+      border: 2px solid #2D2B5B; font-size: 20px; font-weight: 700;
+      text-align: center; color: #2D2B5B; background: #fff;
+    }
+    .hc-number:focus { outline: none; box-shadow: 0 0 0 3px #2D2B5B20; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     SCREEN 1 — Start / Login
+═══════════════════════════════════════ -->
+<div id="screen1" class="screen active">
+  <div class="header">
+    <div class="header-logo">B</div>
+    <div class="header-title">
+      <div class="club">Bramley Golf Club</div>
+      <div class="society">MOTH's Rollup</div>
+    </div>
+  </div>
+  <div class="s1-body">
+
+    <!-- Google auth -->
+    <div id="googleSection">
+      <button class="google-btn" id="googleSignInBtn" onclick="signInWithGoogle()">
+        <div class="g-dot"></div>
+        Sign in with Google
+      </button>
+    </div>
+    <div id="googleConnected" style="display:none">
+      <div class="google-badge">
+        <div class="dot">
+          <svg width="9" height="9" viewBox="0 0 8 8"><polyline points="1,4 3,6 7,2" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+        </div>
+        <span id="connectedEmail">Connected</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- IG credentials -->
+    <div class="section-label">Intelligent Golf</div>
+    <div class="field-group">
+      <div class="field-label">Username</div>
+      <input class="field-input" id="igUsername" type="email" placeholder="your@email.com" autocomplete="email"/>
+    </div>
+    <div class="field-group">
+      <div class="field-label">PIN</div>
+      <div class="pin-row">
+        <input class="pin-box" id="pin1" type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric"/>
+        <input class="pin-box" id="pin2" type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric"/>
+        <input class="pin-box" id="pin3" type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric"/>
+        <input class="pin-box" id="pin4" type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric"/>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Round date -->
+    <div class="field-group">
+      <div class="field-label">Round date</div>
+      <input class="field-input" id="roundDate" type="date"/>
+    </div>
+
+    <!-- Error -->
+    <div id="s1Error" style="display:none" class="error-box">
+      <span id="s1ErrorMsg"></span>
+      <span class="error-retry">Tap Load Players to retry</span>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-pair">
+      <button class="big-btn btn-outline" onclick="showLastRound()">
+        <span class="bi">📋</span>
+        <span class="bl">Last round</span>
+        <span class="bs">Results &amp; handicaps</span>
+      </button>
+      <button class="big-btn btn-navy" onclick="loadPlayers()">
+        <span class="bi">⛳</span>
+        <span class="bl">Load players</span>
+        <span class="bs">Sets up new round</span>
+      </button>
+    </div>
+
+    <div id="s1Status" class="status-bar status-neutral">Checking status…</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     SCREEN 2 — Score Entry
+═══════════════════════════════════════ -->
+<div id="screen2" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="goBack()">‹</button>
+    <div class="header-title" style="text-align:center">
+      <div class="club" id="s2DateLabel">MOTH's Rollup</div>
+      <div class="society">Score entry</div>
+    </div>
+    <div class="header-spacer"></div>
+  </div>
+  <div class="autosave-bar">
+    <div class="autosave-dot" id="saveDot"></div>
+    <span class="autosave-label" id="saveLabel">Saved</span>
+  </div>
+  <div class="grid-wrap">
+    <table class="xl">
+      <thead>
+        <tr>
+          <th class="left">Player</th>
+          <th>HC</th>
+          <th>Score</th>
+          <th>New HC</th>
+        </tr>
+      </thead>
+      <tbody id="scoreGrid"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     SCREEN 3 — Results
+═══════════════════════════════════════ -->
+<div id="screen3" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="goBack()">‹</button>
+    <div class="header-title" style="text-align:center">
+      <div class="club" id="s3DateLabel">MOTH's Rollup</div>
+      <div class="society">Results</div>
+    </div>
+    <div class="header-spacer"></div>
+  </div>
+  <div class="results-wrap">
+    <table class="rt">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="left">Player</th>
+          <th>Score</th>
+          <th>New HC</th>
+        </tr>
+      </thead>
+      <tbody id="resultsGrid"></tbody>
+    </table>
+  </div>
+  <div class="results-footer">
+    <div id="s3Status" class="status-bar status-success">Results</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     DIALOGS
+═══════════════════════════════════════ -->
+
+<!-- New player dialog -->
+<div class="overlay" id="newPlayerOverlay">
+  <div class="dialog">
+    <div class="dialog-title">New player found</div>
+    <div class="dialog-name" id="newPlayerName"></div>
+    <div class="dialog-body">Not in the society list yet. Enter a starting handicap to add them.</div>
+    <div class="field-group">
+      <div class="field-label" style="text-align:center">Starting handicap</div>
+      <input class="hc-number" id="newPlayerHC" type="number" min="0" max="54" placeholder="e.g. 24" inputmode="numeric"/>
+    </div>
+    <div class="dialog-btns">
+      <button class="dialog-btn btn-cancel" onclick="skipNewPlayer()">Skip</button>
+      <button class="dialog-btn btn-confirm" onclick="confirmNewPlayer()">Add player</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reload warning dialog -->
+<div class="overlay" id="reloadOverlay">
+  <div class="dialog">
+    <div class="dialog-title">Reload players from IG?</div>
+    <div class="dialog-body" id="reloadMsg">This will clear all entered scores and reload the player list from Intelligent Golf.</div>
+    <div class="dialog-btns">
+      <button class="dialog-btn btn-cancel" onclick="closeOverlay('reloadOverlay')">Cancel</button>
+      <button class="dialog-btn btn-danger" onclick="confirmReload()">Reload</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════
+// State
+// ═══════════════════════════════════════
+let state = {
+  currentScreen: 'screen1',
+  previousScreen: 'screen1',
+  players: [],       // [{name, handicap, score, new_handicap, adjustment, new_player}]
+  roundDate: '',
+  newPlayerQueue: [], // names needing handicap entry
+  currentNewPlayer: null,
+  authenticated: false,
+  email: '',
+};
+
+// ═══════════════════════════════════════
+// Navigation
+// ═══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  state.previousScreen = state.currentScreen;
+  state.currentScreen = id;
+}
+
+function goBack() {
+  showScreen('screen1');
+}
+
+// ═══════════════════════════════════════
+// Init
+// ═══════════════════════════════════════
+async function init() {
+  // Set default date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('roundDate').value = today;
+
+  // PIN auto-advance
+  ['pin1','pin2','pin3','pin4'].forEach((id, i, arr) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      el.value = el.value.replace(/\D/g, '').slice(0, 1);
+      if (el.value && i < arr.length - 1) {
+        document.getElementById(arr[i + 1]).focus();
+      }
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !el.value && i > 0) {
+        document.getElementById(arr[i - 1]).focus();
+      }
+    });
+  });
+
+  // Check auth status
+  try {
+    const resp = await fetch('/auth/status');
+    const data = await resp.json();
+    if (data.authenticated) {
+      state.authenticated = true;
+      state.email = data.email;
+      showGoogleConnected(data.email);
+      updateStatus(data.last_round_date || 'No previous round');
+    } else {
+      updateStatus('Sign in to get started');
+    }
+  } catch(e) {
+    updateStatus('Offline');
+  }
+}
+
+function showGoogleConnected(email) {
+  document.getElementById('googleSection').style.display = 'none';
+  document.getElementById('googleConnected').style.display = 'block';
+  document.getElementById('connectedEmail').textContent = `Connected: ${email}`;
+}
+
+function updateStatus(msg, type = 'neutral') {
+  const el = document.getElementById('s1Status');
+  el.textContent = msg;
+  el.className = `status-bar status-${type}`;
+}
+
+function showS1Error(msg) {
+  document.getElementById('s1ErrorMsg').textContent = msg;
+  document.getElementById('s1Error').style.display = 'block';
+  updateStatus('Load failed', 'danger');
+}
+
+function clearS1Error() {
+  document.getElementById('s1Error').style.display = 'none';
+}
+
+// ═══════════════════════════════════════
+// Google Auth
+// ═══════════════════════════════════════
+function signInWithGoogle() {
+  window.location.href = '/auth/google';
+}
+
+// ═══════════════════════════════════════
+// Load Players
+// ═══════════════════════════════════════
+async function loadPlayers() {
+  clearS1Error();
+
+  // Save IG credentials first
+  const username = document.getElementById('igUsername').value.trim();
+  const pin = ['pin1','pin2','pin3','pin4'].map(id => document.getElementById(id).value).join('');
+
+  if (!username || pin.length !== 4) {
+    showS1Error('Please enter your Intelligent Golf username and 4-digit PIN.');
+    return;
+  }
+
+  const date = document.getElementById('roundDate').value;
+  if (!date) {
+    showS1Error('Please select a round date.');
+    return;
+  }
+
+  // Save credentials
+  try {
+    await fetch('/api/ig-credentials', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, pin}),
+    });
+  } catch(e) {
+    showS1Error('Could not save credentials. Are you signed in with Google?');
+    return;
+  }
+
+  updateStatus('Loading players from Intelligent Golf…', 'neutral');
+
+  try {
+    const resp = await fetch('/api/load-players', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({date}),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      showS1Error(err.detail || 'Failed to load players.');
+      return;
+    }
+
+    const data = await resp.json();
+    state.players = data.players;
+    state.roundDate = data.date;
+    state.newPlayerQueue = data.new_players || [];
+
+    // Handle new players first
+    if (state.newPlayerQueue.length > 0) {
+      processNewPlayerQueue();
+    } else {
+      openScoreEntry();
+    }
+
+  } catch(e) {
+    showS1Error('Network error. Please check your connection and try again.');
+  }
+}
+
+// ═══════════════════════════════════════
+// New player queue
+// ═══════════════════════════════════════
+function processNewPlayerQueue() {
+  if (state.newPlayerQueue.length === 0) {
+    openScoreEntry();
+    return;
+  }
+  state.currentNewPlayer = state.newPlayerQueue.shift();
+  document.getElementById('newPlayerName').textContent = state.currentNewPlayer;
+  document.getElementById('newPlayerHC').value = '';
+  document.getElementById('newPlayerOverlay').classList.add('open');
+}
+
+async function confirmNewPlayer() {
+  const hc = parseInt(document.getElementById('newPlayerHC').value);
+  if (isNaN(hc) || hc < 0 || hc > 54) {
+    alert('Please enter a valid handicap (0–54).');
+    return;
+  }
+  // Add to sheet
+  await fetch('/api/new-player', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: state.currentNewPlayer, handicap: hc}),
+  });
+  // Update player in state
+  const p = state.players.find(p => p.name === state.currentNewPlayer);
+  if (p) { p.handicap = hc; p.new_player = false; }
+
+  closeOverlay('newPlayerOverlay');
+  processNewPlayerQueue();
+}
+
+function skipNewPlayer() {
+  // Remove from players list
+  state.players = state.players.filter(p => p.name !== state.currentNewPlayer);
+  closeOverlay('newPlayerOverlay');
+  processNewPlayerQueue();
+}
+
+// ═══════════════════════════════════════
+// Score Entry
+// ═══════════════════════════════════════
+function openScoreEntry() {
+  const dateLabel = new Date(state.roundDate + 'T12:00:00').toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+  });
+  document.getElementById('s2DateLabel').textContent = `MOTH's Rollup · ${dateLabel}`;
+  renderGrid();
+  showScreen('screen2');
+}
+
+function renderGrid() {
+  const tbody = document.getElementById('scoreGrid');
+  tbody.innerHTML = '';
+  state.players.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    const adjDisplay = p.adjustment !== null && p.adjustment !== undefined
+      ? (p.adjustment > 0 ? `(+${p.adjustment})` : p.adjustment < 0 ? `(${p.adjustment})` : '(0)')
+      : '';
+    const newHCDisplay = p.new_handicap !== null && p.new_handicap !== undefined
+      ? `${p.new_handicap} <span style="font-size:9px">${adjDisplay}</span>`
+      : '';
+    tr.innerHTML = `
+      <td>${p.name}</td>
+      <td class="c">${p.handicap ?? ''}</td>
+      <td class="sc"><input
+        type="tel"
+        inputmode="numeric"
+        value="${p.score ?? ''}"
+        data-idx="${i}"
+        onchange="onScoreChange(${i}, this.value)"
+        onkeydown="onScoreKey(event, ${i})"
+        style="width:100%;border:none;background:transparent;font-size:10px;text-align:center;font-family:Arial,sans-serif;padding:0;outline:none;"
+      /></td>
+      <td class="nhc" id="nhc_${i}">${newHCDisplay}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function onScoreChange(idx, val) {
+  const score = val === '' ? null : parseInt(val);
+  if (score !== null && isNaN(score)) return;
+  state.players[idx].score = score;
+  await recalculate();
+}
+
+function onScoreKey(event, idx) {
+  if (event.key === 'Enter' || event.key === 'Tab') {
+    event.preventDefault();
+    const inputs = document.querySelectorAll('#scoreGrid input');
+    if (idx + 1 < inputs.length) {
+      inputs[idx + 1].focus();
+    } else {
+      inputs[idx].blur();
+    }
+  }
+}
+
+async function recalculate() {
+  setSaveState('saving');
+  try {
+    const resp = await fetch('/api/autosave', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({date: state.roundDate, players: state.players}),
+    });
+    const data = await resp.json();
+    state.players = data.players;
+
+    // Update New HC column only (don't re-render whole grid — would lose focus)
+    state.players.forEach((p, i) => {
+      const cell = document.getElementById(`nhc_${i}`);
+      if (!cell) return;
+      if (p.new_handicap !== null && p.new_handicap !== undefined) {
+        const adj = p.adjustment;
+        const adjStr = adj > 0 ? `(+${adj})` : adj < 0 ? `(${adj})` : '(0)';
+        cell.innerHTML = `${p.new_handicap} <span style="font-size:9px">${adjStr}</span>`;
+      } else {
+        cell.innerHTML = '';
+      }
+    });
+
+    setSaveState('saved');
+  } catch(e) {
+    setSaveState('error');
+  }
+}
+
+function setSaveState(state) {
+  const dot = document.getElementById('saveDot');
+  const label = document.getElementById('saveLabel');
+  if (state === 'saving') {
+    dot.className = 'autosave-dot';
+    dot.style.background = '#888';
+    label.className = 'autosave-label';
+    label.style.color = '#888';
+    label.textContent = 'Saving…';
+  } else if (state === 'saved') {
+    dot.className = 'autosave-dot';
+    dot.style.background = '#3B6D11';
+    label.className = 'autosave-label';
+    label.style.color = '#3B6D11';
+    label.textContent = 'Saved';
+  } else {
+    dot.className = 'autosave-dot err';
+    dot.style.background = '#A32D2D';
+    label.className = 'autosave-label err';
+    label.style.color = '#A32D2D';
+    label.textContent = 'Save error — tap score to retry';
+  }
+}
+
+// ═══════════════════════════════════════
+// Last Round
+// ═══════════════════════════════════════
+async function showLastRound() {
+  try {
+    const resp = await fetch('/api/last-round');
+    if (!resp.ok) {
+      alert('Could not load last round results.');
+      return;
+    }
+    const data = await resp.json();
+    renderResults(data.players, data.date, false);
+    showScreen('screen3');
+  } catch(e) {
+    alert('Network error loading last round.');
+  }
+}
+
+// ═══════════════════════════════════════
+// Results
+// ═══════════════════════════════════════
+function renderResults(players, dateStr, isCurrent) {
+  document.getElementById('s3DateLabel').textContent = `MOTH's Rollup · ${dateStr}`;
+  const tbody = document.getElementById('resultsGrid');
+  tbody.innerHTML = '';
+
+  const medals = ['g', 's', 'b'];
+  const rowClass = ['gold', 'silver', 'bronze'];
+
+  players.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    if (i < 3) tr.className = rowClass[i];
+
+    const medalCell = i < 3
+      ? `<span class="medal ${medals[i]}">${i + 1}</span>`
+      : `<span style="font-size:10px;color:#aaa">${i + 1}</span>`;
+
+    tr.innerHTML = `
+      <td class="c">${medalCell}</td>
+      <td>${p.name}</td>
+      <td class="c" style="font-weight:600">${p.score}</td>
+      <td class="c" style="font-size:10px">${p.new_handicap}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('s3Status').textContent = isCurrent
+    ? 'Handicaps updated · Sheet saved'
+    : dateStr;
+  document.getElementById('s3Status').className = isCurrent
+    ? 'status-bar status-success'
+    : 'status-bar status-neutral';
+}
+
+// ═══════════════════════════════════════
+// Reload dialog
+// ═══════════════════════════════════════
+function confirmReload() {
+  closeOverlay('reloadOverlay');
+  state.players = [];
+  loadPlayers();
+}
+
+// ═══════════════════════════════════════
+// Overlay helpers
+// ═══════════════════════════════════════
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ═══════════════════════════════════════
+// Boot
+// ═══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
