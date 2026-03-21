@@ -102,6 +102,10 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
             params={"date": date_param, "course": "1", "group": "1"},
         )
         resp.raise_for_status()
+        logger.error(f"Final URL after booking GET: {resp.url}")
+        logger.error(f"Response length: {len(resp.text)}")
+        logger.error(f"Contains isRollup: {'isRollup' in resp.text}")
+        logger.error(f"Contains memberbooking: {'memberbooking' in str(resp.url)}")
 
         # Check still logged in
         if "login" in str(resp.url).lower():
