@@ -4,11 +4,9 @@ Uses httpx only - no browser required.
 """
 
 from datetime import datetime
-import logging
 import httpx
 from bs4 import BeautifulSoup
 
-logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.bramleygolfclub.co.uk"
 LOGIN_URL = f"{BASE_URL}/login.php"
@@ -27,23 +25,9 @@ HEADERS = {
 
 
 async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
-    """
-    Scrape MOTH's Rollup player names for the given date.
-
-    Args:
-        username: club website login email
-        pin: 4-digit PIN
-        date_str: date in YYYY-MM-DD format
-
-    Returns:
-        List of player name strings from the MOTH's rollup signed-up list.
-
-    Raises:
-        Exception with descriptive message on failure.
-    """
     dt = datetime.strptime(date_str, "%Y-%m-%d")
     date_param = dt.strftime("%d-%m-%Y")
-    logger.error(f"DEBUG scrape_players called for date: {date_str} -> {date_param}")
+    print(f"DEBUG: scrape_players called for {date_str} -> {date_param}", flush=True)
 
     async with httpx.AsyncClient(
         headers=HEADERS,
@@ -51,8 +35,8 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         timeout=30.0,
     ) as client:
 
-        # Step 1: GET login page to extract CSRF token
-        logger.error("DEBUG Step 1: Getting login page")
+        # Step 1: GET login page for CSRF token
+        print("DEBUG: Step 1 - getting login page", flush=True)
         resp = await client.get(LOGIN_URL)
         resp.raise_for_status()
 
@@ -61,10 +45,10 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         if not csrf_input:
             raise Exception("Could not find CSRF token on login page.")
         csrf_token = csrf_input.get("value", "")
-        logger.error(f"DEBUG CSRF token found: {csrf_token[:10]}...")
+        print(f"DEBUG: CSRF token found OK", flush=True)
 
-        # Step 2: POST login credentials
-        logger.error("DEBUG Step 2: Posting login credentials")
+        # Step 2: POST login
+        print("DEBUG: Step 2 - posting login", flush=True)
         login_data = {
             "task": "login",
             "topmenu": "1",
@@ -76,38 +60,36 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         }
         resp = await client.post(LOGIN_URL, data=login_data)
         resp.raise_for_status()
-        logger.error(f"DEBUG After login POST, URL is: {resp.url}")
+        print(f"DEBUG: After login POST, URL is: {resp.url}", flush=True)
 
-        # Check for login failure
         if str(resp.url).endswith("login.php"):
             raise Exception("Login failed. Please check your username and PIN.")
 
-        # Step 3: Accept T&C consent if redirected there
+        # Step 3: Accept consent if needed
         if "ttbconsent" in str(resp.url):
-            logger.error("DEBUG Step 3: Accepting T&C consent")
+            print("DEBUG: Step 3 - accepting consent", flush=True)
             resp = await client.get(f"{CONSENT_URL}?action=accept")
             resp.raise_for_status()
-            logger.error(f"DEBUG After consent, URL is: {resp.url}")
+            print(f"DEBUG: After consent URL: {resp.url}", flush=True)
 
-        # Step 4: GET booking page for the target date
-        logger.error(f"DEBUG Step 4: Getting booking page for {date_param}")
+        # Step 4: GET booking page
+        print(f"DEBUG: Step 4 - getting booking page for {date_param}", flush=True)
         resp = await client.get(
             BOOKING_URL,
             params={"date": date_param, "course": "1", "group": "1"},
         )
         resp.raise_for_status()
-        logger.error(f"DEBUG Booking page URL: {resp.url}")
-        logger.error(f"DEBUG Response length: {len(resp.text)}")
-        logger.error(f"DEBUG Contains isRollup: {'isRollup' in resp.text}")
+        print(f"DEBUG: Booking page URL: {resp.url}", flush=True)
+        print(f"DEBUG: Response length: {len(resp.text)}", flush=True)
+        print(f"DEBUG: Contains isRollup: {'isRollup' in resp.text}", flush=True)
 
-        # Check still logged in
         if "login" in str(resp.url).lower():
             raise Exception("Session expired or login failed.")
 
-        # Step 5: Find the MOTH's rollup by contact name
+        # Step 5: Find MOTH's rollup
         soup = BeautifulSoup(resp.text, "html.parser")
         rollup_wrappers = soup.find_all("div", class_="isRollup")
-        logger.error(f"DEBUG isRollup wrappers found: {len(rollup_wrappers)}")
+        print(f"DEBUG: isRollup wrappers found: {len(rollup_wrappers)}", flush=True)
 
         if not rollup_wrappers:
             raise Exception(
@@ -127,7 +109,7 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
                     signed_up_div = div
 
             if contact_div:
-                logger.error(f"DEBUG Contact div text: {contact_div.get_text(strip=True)}")
+                print(f"DEBUG: Contact: {contact_div.get_text(strip=True)}", flush=True)
 
             if contact_div and "MOTH" in contact_div.get_text().upper():
                 if not signed_up_div:
@@ -138,7 +120,7 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
                 names = [n.strip() for n in italic.get_text(strip=True).split(",") if n.strip()]
                 if not names:
                     raise Exception("Found MOTH's Rollup but the signed-up list is empty.")
-                logger.error(f"DEBUG Found {len(names)} players: {names}")
+                print(f"DEBUG: Found {len(names)} players", flush=True)
                 return names
 
         raise Exception(
