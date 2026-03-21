@@ -59,13 +59,6 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
 
         # Step 1: GET login page to extract CSRF token
         resp = await client.get(LOGIN_URL)
-         # DEBUG - remove after testing
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Booking URL requested: {resp.url}")
-        logger.error(f"Page title: {soup.find('title').get_text() if soup.find('title') else 'no title'}")
-        rollups_found = soup.find_all("div", class_="isRollup")
-        logger.error(f"isRollup divs found: {len(rollups_found)}")
         resp.raise_for_status()
 
         soup = BeautifulSoup(resp.text, "html.parser")
@@ -118,6 +111,13 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
 
         # Step 5: Find the MOTH's rollup by contact name
         soup = BeautifulSoup(resp.text, "html.parser")
+                 # DEBUG - remove after testing
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Booking URL requested: {resp.url}")
+        logger.error(f"Page title: {soup.find('title').get_text() if soup.find('title') else 'no title'}")
+        rollups_found = soup.find_all("div", class_="isRollup")
+        logger.error(f"isRollup divs found: {len(rollups_found)}")
         rollup_wrappers = soup.find_all("div", class_="isRollup")
 
         if not rollup_wrappers:
