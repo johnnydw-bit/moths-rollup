@@ -1,20 +1,14 @@
 """
 Intelligent Golf scraper for MOTH's Rollup.
-Uses httpx only — no browser required.
-
-Flow:
-1. GET login page to extract CSRF token
-2. POST credentials to login.php
-3. Accept T&C consent if needed
-4. GET memberbooking page for the target date
-5. Find the rollup whose contact name contains "MOTH"
-6. Return the signed-up player names
+Uses httpx only - no browser required.
 """
 
 from datetime import datetime
+import logging
 import httpx
 from bs4 import BeautifulSoup
 
+logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.bramleygolfclub.co.uk"
 LOGIN_URL = f"{BASE_URL}/login.php"
@@ -47,9 +41,9 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
     Raises:
         Exception with descriptive message on failure.
     """
-    # Convert date from YYYY-MM-DD to DD-MM-YYYY for the booking URL
     dt = datetime.strptime(date_str, "%Y-%m-%d")
     date_param = dt.strftime("%d-%m-%Y")
+    logger.error(f"DEBUG scrape_players called for date: {date_str} -> {date_param}")
 
     async with httpx.AsyncClient(
         headers=HEADERS,
@@ -58,19 +52,19 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
     ) as client:
 
         # Step 1: GET login page to extract CSRF token
+        logger.error("DEBUG Step 1: Getting login page")
         resp = await client.get(LOGIN_URL)
         resp.raise_for_status()
 
         soup = BeautifulSoup(resp.text, "html.parser")
         csrf_input = soup.find("input", {"name": "_csrf_token"})
         if not csrf_input:
-            raise Exception(
-                "Could not find CSRF token on login page. "
-                "The login page structure may have changed."
-            )
+            raise Exception("Could not find CSRF token on login page.")
         csrf_token = csrf_input.get("value", "")
+        logger.error(f"DEBUG CSRF token found: {csrf_token[:10]}...")
 
         # Step 2: POST login credentials
+        logger.error("DEBUG Step 2: Posting login credentials")
         login_data = {
             "task": "login",
             "topmenu": "1",
@@ -82,48 +76,38 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         }
         resp = await client.post(LOGIN_URL, data=login_data)
         resp.raise_for_status()
+        logger.error(f"DEBUG After login POST, URL is: {resp.url}")
 
         # Check for login failure
-        page_lower = resp.text.lower()
-        # Check for login failure
-        if "login" in str(resp.url).lower() and "memberbooking" not in str(resp.url).lower():
-            raise Exception(
-                "Login failed. Please check your username and PIN."
-            )
+        if str(resp.url).endswith("login.php"):
+            raise Exception("Login failed. Please check your username and PIN.")
 
         # Step 3: Accept T&C consent if redirected there
         if "ttbconsent" in str(resp.url):
+            logger.error("DEBUG Step 3: Accepting T&C consent")
             resp = await client.get(f"{CONSENT_URL}?action=accept")
             resp.raise_for_status()
+            logger.error(f"DEBUG After consent, URL is: {resp.url}")
 
         # Step 4: GET booking page for the target date
+        logger.error(f"DEBUG Step 4: Getting booking page for {date_param}")
         resp = await client.get(
             BOOKING_URL,
             params={"date": date_param, "course": "1", "group": "1"},
         )
         resp.raise_for_status()
-        logger.error(f"Final URL after booking GET: {resp.url}")
-        logger.error(f"Response length: {len(resp.text)}")
-        logger.error(f"Contains isRollup: {'isRollup' in resp.text}")
-        logger.error(f"Contains memberbooking: {'memberbooking' in str(resp.url)}")
+        logger.error(f"DEBUG Booking page URL: {resp.url}")
+        logger.error(f"DEBUG Response length: {len(resp.text)}")
+        logger.error(f"DEBUG Contains isRollup: {'isRollup' in resp.text}")
 
         # Check still logged in
         if "login" in str(resp.url).lower():
-            raise Exception(
-                "Session expired or login failed. "
-                "Please check your credentials."
-            )
+            raise Exception("Session expired or login failed.")
 
         # Step 5: Find the MOTH's rollup by contact name
         soup = BeautifulSoup(resp.text, "html.parser")
-        # DEBUG - remove after testing
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Booking URL requested: {resp.url}")
-        logger.error(f"Page title: {soup.find('title').get_text() if soup.find('title') else 'no title'}")
-        rollups_found = soup.find_all("div", class_="isRollup")
-        logger.error(f"isRollup divs found: {len(rollups_found)}")
         rollup_wrappers = soup.find_all("div", class_="isRollup")
+        logger.error(f"DEBUG isRollup wrappers found: {len(rollup_wrappers)}")
 
         if not rollup_wrappers:
             raise Exception(
@@ -142,23 +126,19 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
                 elif "Signed up" in t:
                     signed_up_div = div
 
-            # Match on contact name containing MOTH
+            if contact_div:
+                logger.error(f"DEBUG Contact div text: {contact_div.get_text(strip=True)}")
+
             if contact_div and "MOTH" in contact_div.get_text().upper():
                 if not signed_up_div:
-                    raise Exception(
-                        "Found MOTH's Rollup but no players have signed up yet."
-                    )
+                    raise Exception("Found MOTH's Rollup but no players have signed up yet.")
                 italic = signed_up_div.find("i")
                 if not italic:
-                    raise Exception(
-                        "Found MOTH's Rollup but could not parse player names."
-                    )
-                signed_up_text = italic.get_text(strip=True)
-                names = [n.strip() for n in signed_up_text.split(",") if n.strip()]
+                    raise Exception("Found MOTH's Rollup but could not parse player names.")
+                names = [n.strip() for n in italic.get_text(strip=True).split(",") if n.strip()]
                 if not names:
-                    raise Exception(
-                        "Found MOTH's Rollup but the signed-up list is empty."
-                    )
+                    raise Exception("Found MOTH's Rollup but the signed-up list is empty.")
+                logger.error(f"DEBUG Found {len(names)} players: {names}")
                 return names
 
         raise Exception(
