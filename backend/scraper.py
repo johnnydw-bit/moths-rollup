@@ -5,12 +5,12 @@ Uses httpx only — no browser required.
 Flow:
 1. GET login page to extract CSRF token
 2. POST credentials to login.php
-3. Accept T&C consent
+3. Accept T&C consent if needed
 4. GET memberbooking page for the target date
-5. Parse rollup entrants from the HTML
+5. Find the rollup whose contact name contains "MOTH"
+6. Return the signed-up player names
 """
 
-import re
 from datetime import datetime
 import httpx
 from bs4 import BeautifulSoup
@@ -34,7 +34,7 @@ HEADERS = {
 
 async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
     """
-    Scrape rollup player names for the given date.
+    Scrape MOTH's Rollup player names for the given date.
 
     Args:
         username: club website login email
@@ -42,7 +42,7 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         date_str: date in YYYY-MM-DD format
 
     Returns:
-        List of player name strings from the rollup entrants list.
+        List of player name strings from the MOTH's rollup signed-up list.
 
     Raises:
         Exception with descriptive message on failure.
@@ -84,10 +84,10 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         resp.raise_for_status()
 
         # Check for login failure
-        if "Invalid" in resp.text or "incorrect" in resp.text.lower():
+        page_lower = resp.text.lower()
+        if "invalid" in page_lower or "incorrect" in page_lower:
             raise Exception(
-                "Login failed. Please check your Intelligent Golf "
-                "username and PIN."
+                "Login failed. Please check your username and PIN."
             )
 
         # Step 3: Accept T&C consent if redirected there
@@ -109,57 +109,47 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
                 "Please check your credentials."
             )
 
-        # Step 5: Parse rollup entrants
+        # Step 5: Find the MOTH's rollup by contact name
         soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Find the rollup entrants list — looks for any isRollup block
-        # containing MOTH or Saturday Morning rollup
-        names = []
-
-        # First try: look for rollup-entrants-list divs inside isRollup blocks
         rollup_wrappers = soup.find_all("div", class_="isRollup")
-        for wrapper in rollup_wrappers:
-            # Check it's a MOTH/Saturday Morning rollup, not Ladies etc.
-            comp_name = wrapper.find("span", class_="comp-name-text")
-            if comp_name:
-                name_text = comp_name.get_text(strip=True).lower()
-                # Skip Ladies rollup
-                if "lady" in name_text or "ladies" in name_text:
-                    continue
 
-            entrants_div = wrapper.find("div", class_="rollup-entrants-list")
-            if entrants_div:
-                # Look for the "Signed up:" div
-                italic = entrants_div.find("i")
-                if italic:
-                    signed_up_text = italic.get_text(strip=True)
-                    if signed_up_text:
-                        raw_names = [
-                            n.strip()
-                            for n in signed_up_text.split(",")
-                            if n.strip()
-                        ]
-                        names.extend(raw_names)
-
-        if names:
-            # Deduplicate while preserving order
-            seen = set()
-            unique_names = []
-            for name in names:
-                if name.lower() not in seen:
-                    seen.add(name.lower())
-                    unique_names.append(name)
-            return unique_names
-
-        # Fallback: check if rollup exists at all for this date
-        if soup.find("div", class_="isRollup"):
+        if not rollup_wrappers:
             raise Exception(
-                "Found a rollup on the booking page but could not extract "
-                "player names. The page structure may have changed."
+                f"No rollups found on the booking page for {date_str}. "
+                "Check the date is a Monday or Thursday."
             )
 
+        for wrapper in rollup_wrappers:
+            entrant_divs = wrapper.find_all("div", class_="rollup-entrants-list")
+            contact_div = None
+            signed_up_div = None
+            for div in entrant_divs:
+                t = div.get_text(strip=True)
+                if "Roll up Contact" in t:
+                    contact_div = div
+                elif "Signed up" in t:
+                    signed_up_div = div
+
+            # Match on contact name containing MOTH
+            if contact_div and "MOTH" in contact_div.get_text().upper():
+                if not signed_up_div:
+                    raise Exception(
+                        "Found MOTH's Rollup but no players have signed up yet."
+                    )
+                italic = signed_up_div.find("i")
+                if not italic:
+                    raise Exception(
+                        "Found MOTH's Rollup but could not parse player names."
+                    )
+                signed_up_text = italic.get_text(strip=True)
+                names = [n.strip() for n in signed_up_text.split(",") if n.strip()]
+                if not names:
+                    raise Exception(
+                        "Found MOTH's Rollup but the signed-up list is empty."
+                    )
+                return names
+
         raise Exception(
-            f"No rollup found on the booking page for {date_str}. "
-            "The rollup may not be scheduled for this date, or players "
-            "may not have signed up yet."
+            f"Could not find MOTH's Rollup on the booking page for {date_str}. "
+            "The rollup may not be scheduled for this date."
         )
