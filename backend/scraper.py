@@ -85,7 +85,8 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
 
         # Check for login failure
         page_lower = resp.text.lower()
-        if "invalid" in page_lower or "incorrect" in page_lower:
+        # Check for login failure
+        if "login" in str(resp.url).lower() and "memberbooking" not in str(resp.url).lower():
             raise Exception(
                 "Login failed. Please check your username and PIN."
             )
