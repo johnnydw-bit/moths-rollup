@@ -25,9 +25,11 @@ HEADERS = {
 
 
 async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
+    """
+    Scrape MOTH's Rollup player names for the given date.
+    """
     dt = datetime.strptime(date_str, "%Y-%m-%d")
     date_param = dt.strftime("%d-%m-%Y")
-    print(f"DEBUG: scrape_players called for {date_str} -> {date_param}", flush=True)
 
     async with httpx.AsyncClient(
         headers=HEADERS,
@@ -36,7 +38,6 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
     ) as client:
 
         # Step 1: GET login page for CSRF token
-        print("DEBUG: Step 1 - getting login page", flush=True)
         resp = await client.get(LOGIN_URL)
         resp.raise_for_status()
 
@@ -45,10 +46,8 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         if not csrf_input:
             raise Exception("Could not find CSRF token on login page.")
         csrf_token = csrf_input.get("value", "")
-        print("DEBUG: CSRF token found OK", flush=True)
 
         # Step 2: POST login
-        print("DEBUG: Step 2 - posting login", flush=True)
         login_data = {
             "task": "login",
             "topmenu": "1",
@@ -60,43 +59,31 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         }
         resp = await client.post(LOGIN_URL, data=login_data)
         resp.raise_for_status()
-        print(f"DEBUG: After login POST, URL is: {resp.url}", flush=True)
 
         if str(resp.url).endswith("login.php"):
             raise Exception("Login failed. Please check your username and PIN.")
 
         # Step 3: Accept consent after login if needed
         if "ttbconsent" in str(resp.url):
-            print("DEBUG: Step 3 - accepting consent after login", flush=True)
             resp = await client.get(f"{CONSENT_URL}?action=accept")
             resp.raise_for_status()
-            print(f"DEBUG: After consent URL: {resp.url}", flush=True)
 
         # Step 4: GET booking page
-        print(f"DEBUG: Step 4 - getting booking page for {date_param}", flush=True)
         resp = await client.get(
             BOOKING_URL,
             params={"date": date_param, "course": "1", "group": "1"},
         )
         resp.raise_for_status()
-        print(f"DEBUG: Booking page URL: {resp.url}", flush=True)
 
         # Accept consent if redirected there from booking page
         if "ttbconsent" in str(resp.url):
-            print("DEBUG: Consent required on booking page - accepting", flush=True)
             resp = await client.get(f"{CONSENT_URL}?action=accept")
             resp.raise_for_status()
-            print(f"DEBUG: After consent URL: {resp.url}", flush=True)
-            # Retry booking page
             resp = await client.get(
                 BOOKING_URL,
                 params={"date": date_param, "course": "1", "group": "1"},
             )
             resp.raise_for_status()
-            print(f"DEBUG: Booking page URL after consent retry: {resp.url}", flush=True)
-
-        print(f"DEBUG: Response length: {len(resp.text)}", flush=True)
-        print(f"DEBUG: Contains isRollup: {'isRollup' in resp.text}", flush=True)
 
         if "login" in str(resp.url).lower():
             raise Exception("Session expired or login failed.")
@@ -104,7 +91,6 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
         # Step 5: Find MOTH's rollup
         soup = BeautifulSoup(resp.text, "html.parser")
         rollup_wrappers = soup.find_all("div", class_="isRollup")
-        print(f"DEBUG: isRollup wrappers found: {len(rollup_wrappers)}", flush=True)
 
         if not rollup_wrappers:
             raise Exception(
@@ -123,9 +109,6 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
                 elif "Signed up" in t:
                     signed_up_div = div
 
-            if contact_div:
-                print(f"DEBUG: Contact: {contact_div.get_text(strip=True)}", flush=True)
-
             if contact_div and "MOTH" in contact_div.get_text().upper():
                 if not signed_up_div:
                     raise Exception("Found MOTH's Rollup but no players have signed up yet.")
@@ -135,7 +118,6 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
                 names = [n.strip() for n in italic.get_text(strip=True).split(",") if n.strip()]
                 if not names:
                     raise Exception("Found MOTH's Rollup but the signed-up list is empty.")
-                print(f"DEBUG: Found {len(names)} players", flush=True)
                 return names
 
         raise Exception(
