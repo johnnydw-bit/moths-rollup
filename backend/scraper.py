@@ -112,7 +112,7 @@ async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
 
         # Step 5: Find the MOTH's rollup by contact name
         soup = BeautifulSoup(resp.text, "html.parser")
-                 # DEBUG - remove after testing
+        # DEBUG - remove after testing
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Booking URL requested: {resp.url}")
