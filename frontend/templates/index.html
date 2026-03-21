@@ -58,26 +58,6 @@
     /* ── Screen 1: Start ── */
     .s1-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
 
-    .google-badge {
-      display: flex; align-items: center; gap: 8px;
-      background: #EAF3DE; border: 1px solid #3B6D1160;
-      border-radius: 10px; padding: 10px 14px;
-      font-size: 13px; font-weight: 500; color: #3B6D11;
-    }
-    .google-badge .dot {
-      width: 14px; height: 14px; border-radius: 50%;
-      background: #3B6D11; display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .google-btn {
-      display: flex; align-items: center; gap: 8px;
-      background: #fff; border: 1px solid #2D2B5B40;
-      border-radius: 10px; padding: 10px 14px;
-      font-size: 13px; font-weight: 500; color: #2D2B5B;
-      cursor: pointer; width: 100%;
-    }
-    .google-btn .g-dot { width: 14px; height: 14px; border-radius: 50%; background: #4285F4; flex-shrink: 0; }
-
     .section-label {
       font-size: 10px; font-weight: 600; color: #2D2B5B;
       text-transform: uppercase; letter-spacing: 0.08em;
@@ -159,10 +139,7 @@
       background: #fff; vertical-align: middle; line-height: 1.5;
     }
     table.xl tbody td.c { text-align: center; }
-    table.xl tbody td.sc {
-      text-align: center;
-      /* Score cell — plain, no styling, just like any other cell */
-    }
+    table.xl tbody td.sc { text-align: center; }
     table.xl tbody td.nhc { text-align: center; white-space: nowrap; font-size: 9px; }
     table.xl tbody td.sc input {
       width: 100%; border: none; background: transparent;
@@ -170,6 +147,10 @@
       font-family: Arial, Helvetica, sans-serif;
       padding: 0; outline: none;
     }
+    /* Medal row backgrounds on score grid */
+    table.xl tbody tr.rank-gold td { background: #FFF9E0; }
+    table.xl tbody tr.rank-silver td { background: #F5F5F5; }
+    table.xl tbody tr.rank-bronze td { background: #FDF3ED; }
 
     /* ── Screen 3: Results ── */
     .results-wrap { flex: 1; overflow-y: auto; background: #fff; }
@@ -189,9 +170,9 @@
       background: #fff; vertical-align: middle;
     }
     table.rt tbody td.c { text-align: center; }
-    table.rt tbody tr.gold { background: #FFF9E0; }
-    table.rt tbody tr.silver { background: #F5F5F5; }
-    table.rt tbody tr.bronze { background: #FDF3ED; }
+    table.rt tbody tr.gold td { background: #FFF9E0; }
+    table.rt tbody tr.silver td { background: #F5F5F5; }
+    table.rt tbody tr.bronze td { background: #FDF3ED; }
     .medal { width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; }
     .medal.g { background: #FFD700; color: #7A5C00; }
     .medal.s { background: #C0C0C0; color: #444; }
@@ -236,7 +217,7 @@
 <body>
 
 <!-- ═══════════════════════════════════════
-     SCREEN 1 — Start / Login
+     SCREEN 1 — Start
 ═══════════════════════════════════════ -->
 <div id="screen1" class="screen active">
   <div class="header">
@@ -247,24 +228,6 @@
     </div>
   </div>
   <div class="s1-body">
-
-    <!-- Google auth -->
-    <div id="googleSection">
-      <button class="google-btn" id="googleSignInBtn" onclick="signInWithGoogle()">
-        <div class="g-dot"></div>
-        Sign in with Google
-      </button>
-    </div>
-    <div id="googleConnected" style="display:none">
-      <div class="google-badge">
-        <div class="dot">
-          <svg width="9" height="9" viewBox="0 0 8 8"><polyline points="1,4 3,6 7,2" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
-        </div>
-        <span id="connectedEmail">Connected</span>
-      </div>
-    </div>
-
-    <div class="divider"></div>
 
     <!-- IG credentials -->
     <div class="section-label">Intelligent Golf</div>
@@ -418,13 +381,10 @@
 // ═══════════════════════════════════════
 let state = {
   currentScreen: 'screen1',
-  previousScreen: 'screen1',
-  players: [],       // [{name, handicap, score, new_handicap, adjustment, new_player}]
+  players: [],
   roundDate: '',
-  newPlayerQueue: [], // names needing handicap entry
+  newPlayerQueue: [],
   currentNewPlayer: null,
-  authenticated: false,
-  email: '',
 };
 
 // ═══════════════════════════════════════
@@ -433,7 +393,6 @@ let state = {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  state.previousScreen = state.currentScreen;
   state.currentScreen = id;
 }
 
@@ -465,27 +424,14 @@ async function init() {
     });
   });
 
-  // Check auth status
+  // Get last round date for status
   try {
     const resp = await fetch('/auth/status');
     const data = await resp.json();
-    if (data.authenticated) {
-      state.authenticated = true;
-      state.email = data.email;
-      showGoogleConnected(data.email);
-      updateStatus(data.last_round_date || 'No previous round');
-    } else {
-      updateStatus('Sign in to get started');
-    }
+    updateStatus(data.last_round_date || 'No previous round');
   } catch(e) {
-    updateStatus('Offline');
+    updateStatus('Ready');
   }
-}
-
-function showGoogleConnected(email) {
-  document.getElementById('googleSection').style.display = 'none';
-  document.getElementById('googleConnected').style.display = 'block';
-  document.getElementById('connectedEmail').textContent = `Connected: ${email}`;
 }
 
 function updateStatus(msg, type = 'neutral') {
@@ -505,19 +451,11 @@ function clearS1Error() {
 }
 
 // ═══════════════════════════════════════
-// Google Auth
-// ═══════════════════════════════════════
-function signInWithGoogle() {
-  window.location.href = '/auth/google';
-}
-
-// ═══════════════════════════════════════
 // Load Players
 // ═══════════════════════════════════════
 async function loadPlayers() {
   clearS1Error();
 
-  // Save IG credentials first
   const username = document.getElementById('igUsername').value.trim();
   const pin = ['pin1','pin2','pin3','pin4'].map(id => document.getElementById(id).value).join('');
 
@@ -540,7 +478,7 @@ async function loadPlayers() {
       body: JSON.stringify({username, pin}),
     });
   } catch(e) {
-    showS1Error('Could not save credentials. Are you signed in with Google?');
+    showS1Error('Could not save credentials.');
     return;
   }
 
@@ -564,7 +502,6 @@ async function loadPlayers() {
     state.roundDate = data.date;
     state.newPlayerQueue = data.new_players || [];
 
-    // Handle new players first
     if (state.newPlayerQueue.length > 0) {
       processNewPlayerQueue();
     } else {
@@ -596,22 +533,18 @@ async function confirmNewPlayer() {
     alert('Please enter a valid handicap (0–54).');
     return;
   }
-  // Add to sheet
   await fetch('/api/new-player', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({name: state.currentNewPlayer, handicap: hc}),
   });
-  // Update player in state
   const p = state.players.find(p => p.name === state.currentNewPlayer);
   if (p) { p.handicap = hc; p.new_player = false; }
-
   closeOverlay('newPlayerOverlay');
   processNewPlayerQueue();
 }
 
 function skipNewPlayer() {
-  // Remove from players list
   state.players = state.players.filter(p => p.name !== state.currentNewPlayer);
   closeOverlay('newPlayerOverlay');
   processNewPlayerQueue();
@@ -656,6 +589,27 @@ function renderGrid() {
     `;
     tbody.appendChild(tr);
   });
+  updateGridRankings();
+}
+
+function updateGridRankings() {
+  // Build list of players with scores
+  const scored = state.players
+    .map((p, i) => ({ i, score: p.score }))
+    .filter(p => p.score !== null && p.score !== undefined);
+
+  // Sort descending
+  scored.sort((a, b) => b.score - a.score);
+
+  // Clear all rank classes first
+  const rows = document.querySelectorAll('#scoreGrid tr');
+  rows.forEach(r => r.classList.remove('rank-gold', 'rank-silver', 'rank-bronze'));
+
+  // Apply top 3
+  const rankClasses = ['rank-gold', 'rank-silver', 'rank-bronze'];
+  scored.slice(0, 3).forEach((p, rank) => {
+    if (rows[p.i]) rows[p.i].classList.add(rankClasses[rank]);
+  });
 }
 
 async function onScoreChange(idx, val) {
@@ -688,7 +642,7 @@ async function recalculate() {
     const data = await resp.json();
     state.players = data.players;
 
-    // Update New HC column only (don't re-render whole grid — would lose focus)
+    // Update New HC column only
     state.players.forEach((p, i) => {
       const cell = document.getElementById(`nhc_${i}`);
       if (!cell) return;
@@ -701,31 +655,27 @@ async function recalculate() {
       }
     });
 
+    // Update row rankings
+    updateGridRankings();
     setSaveState('saved');
   } catch(e) {
     setSaveState('error');
   }
 }
 
-function setSaveState(state) {
+function setSaveState(s) {
   const dot = document.getElementById('saveDot');
   const label = document.getElementById('saveLabel');
-  if (state === 'saving') {
-    dot.className = 'autosave-dot';
+  if (s === 'saving') {
     dot.style.background = '#888';
-    label.className = 'autosave-label';
     label.style.color = '#888';
     label.textContent = 'Saving…';
-  } else if (state === 'saved') {
-    dot.className = 'autosave-dot';
+  } else if (s === 'saved') {
     dot.style.background = '#3B6D11';
-    label.className = 'autosave-label';
     label.style.color = '#3B6D11';
     label.textContent = 'Saved';
   } else {
-    dot.className = 'autosave-dot err';
     dot.style.background = '#A32D2D';
-    label.className = 'autosave-label err';
     label.style.color = '#A32D2D';
     label.textContent = 'Save error — tap score to retry';
   }
