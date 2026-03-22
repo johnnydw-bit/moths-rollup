@@ -445,16 +445,28 @@ function renderGrid() {
 }
 
 function updateGridRankings() {
-  const scored = state.players
-    .map((p, i) => ({ i, score: p.score }))
-    .filter(p => p.score !== null && p.score !== undefined);
-  scored.sort((a, b) => b.score - a.score);
   const rows = document.querySelectorAll('#scoreGrid tr');
   rows.forEach(r => r.classList.remove('rank-gold', 'rank-silver', 'rank-bronze'));
+
+  const scored = state.players
+    .filter(p => p.score !== null && p.score !== undefined && p.score !== '')
+    .sort((a, b) => Number(b.score) - Number(a.score));
+
   ['rank-gold', 'rank-silver', 'rank-bronze'].forEach((cls, rank) => {
-    if (scored[rank] && rows[scored[rank].i]) rows[scored[rank].i].classList.add(cls);
+    if (!scored[rank]) return;
+    const name = scored[rank].name;
+    rows.forEach(row => {
+      if (row.cells[0] && row.cells[0].textContent.trim() === name) {
+        row.classList.add(cls);
+      }
+    });
   });
 }
+This finds rows by player name rather than array index so order doesn't matter. Can you update this in GitHub and redeploy? ⛳
+
+
+
+
 
 async function onScoreChange(idx, val) {
   const score = val === '' ? null : parseInt(val);
