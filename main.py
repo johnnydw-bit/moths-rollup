@@ -143,13 +143,17 @@ class ScoreUpdate(BaseModel):
 
 @app.post("/api/autosave")
 async def autosave(body: ScoreUpdate):
-    """
-    Calculate and return updated handicaps for the current player list.
-    Does NOT write to the sheet.
-    """
     results = calculate_new_handicaps(body.players)
     for r in results:
         r["adj_display"] = format_adjustment(r.get("adjustment"))
+    
+    # Write to sheet if any scores exist
+    if any(p.get("score") is not None for p in body.players):
+        try:
+            save_round_results(SHEET_ID, get_context(), results, body.date)
+        except Exception:
+            pass  # Don't fail the response if sheet write fails
+    
     return {"players": results}
 
 
