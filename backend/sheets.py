@@ -1,54 +1,48 @@
 """
 Google Sheets helper for MOTH's Rollup.
+Uses a service account for authentication - no user OAuth required.
 
 Sheet structure:
   Sheet: "History"
     Col A: Player name
     Col B: Last round score
-    Col C: Next round handicap (what they play off next time)
+    Col C: Next round handicap
   Rows start at row 2 (row 1 is the header).
-
-Operations:
-  - get_all_players()         → list of {name, handicap}
-  - get_player_handicap(name) → int or None
-  - save_round_results(results, date_str)
-      Updates col B (score) and col C (new handicap) for each player
-      who played. Non-playing members are left unchanged.
-  - add_new_player(name, handicap)
-      Inserts a new player row in alphabetical order.
 """
 
+import os
+import json
+
 from googleapiclient.discovery import build
-from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 
 
 HISTORY_SHEET = "History"
-HEADER_ROW = 1          # Row 1 is headers, data starts at row 2
 COL_NAME = "A"
 COL_SCORE = "B"
 COL_HANDICAP = "C"
 
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-def _sheets_service(token_info: dict):
-    """Build a Google Sheets service from stored OAuth token info."""
-    creds = Credentials(
-        token=token_info["access_token"],
-        refresh_token=token_info.get("refresh_token"),
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=token_info["client_id"],
-        client_secret=token_info["client_secret"],
-        scopes=["https://www.googleapis.com/auth/spreadsheets"],
+
+def _sheets_service():
+    """Build a Google Sheets service using the service account credentials."""
+    sa_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+    if not sa_json:
+        raise Exception("GOOGLE_SERVICE_ACCOUNT_JSON environment variable not set.")
+    sa_info = json.loads(sa_json)
+    creds = service_account.Credentials.from_service_account_info(
+        sa_info, scopes=SCOPES
     )
     return build("sheets", "v4", credentials=creds, cache_discovery=False)
 
 
-def get_all_players(sheet_id: str, token_info: dict) -> list[dict]:
+def get_all_players(sheet_id: str, _token_info: dict = None) -> list[dict]:
     """
     Read all players from the History sheet.
-    Returns list of {name: str, handicap: int, row: int}
-    row is the 1-based sheet row number, needed for targeted updates.
+    Returns list of {name, handicap, row}
     """
-    service = _sheets_service(token_info)
+    service = _sheets_service()
     result = (
         service.spreadsheets()
         .values()
@@ -72,14 +66,14 @@ def get_all_players(sheet_id: str, token_info: dict) -> list[dict]:
         players.append({
             "name": name,
             "handicap": handicap,
-            "row": i + 2,  # +2 because data starts at row 2
+            "row": i + 2,
         })
     return players
 
 
-def get_player_handicap(sheet_id: str, token_info: dict, name: str) -> int | None:
-    """Look up a single player's current handicap by name (exact match)."""
-    players = get_all_players(sheet_id, token_info)
+def get_player_handicap(sheet_id: str, _token_info: dict, name: str) -> int | None:
+    """Look up a single player's current handicap by name."""
+    players = get_all_players(sheet_id)
     for p in players:
         if p["name"].strip().lower() == name.strip().lower():
             return p["handicap"]
@@ -88,23 +82,17 @@ def get_player_handicap(sheet_id: str, token_info: dict, name: str) -> int | Non
 
 def save_round_results(
     sheet_id: str,
-    token_info: dict,
+    _token_info: dict,
     results: list[dict],
     date_str: str,
 ) -> None:
     """
     Save round results to the History sheet.
-
-    results: list of {name, score, new_handicap}
     Only updates rows for players who played (have a score).
-    Non-playing members are left completely unchanged.
-
-    Also writes the round date into cell E1 as a record.
+    Also writes the round date into cell E1.
     """
-    service = _sheets_service(token_info)
-    all_players = get_all_players(sheet_id, token_info)
-
-    # Build a name → row lookup
+    service = _sheets_service()
+    all_players = get_all_players(sheet_id)
     name_to_row = {p["name"].strip().lower(): p["row"] for p in all_players}
 
     data = []
@@ -114,7 +102,7 @@ def save_round_results(
         key = r["name"].strip().lower()
         row_num = name_to_row.get(key)
         if row_num is None:
-            continue  # Player not found — should have been added already
+            continue
         data.append({
             "range": f"{HISTORY_SHEET}!B{row_num}:C{row_num}",
             "values": [[r["score"], r["new_handicap"]]],
@@ -123,7 +111,7 @@ def save_round_results(
     if not data:
         return
 
-    # Write last round date to E1 as a record
+    # Write last round date to E1
     data.append({
         "range": f"{HISTORY_SHEET}!E1",
         "values": [[f"Last round: {date_str}"]],
@@ -140,18 +128,17 @@ def save_round_results(
 
 def add_new_player(
     sheet_id: str,
-    token_info: dict,
+    _token_info: dict,
     name: str,
     handicap: int,
 ) -> None:
     """
     Add a new player to the History sheet in alphabetical order.
-    Inserts a new row at the correct position.
     """
-    service = _sheets_service(token_info)
-    all_players = get_all_players(sheet_id, token_info)
+    service = _sheets_service()
+    all_players = get_all_players(sheet_id)
 
-    # Find insertion point (alphabetical by name)
+    # Find insertion point (alphabetical)
     insert_before_row = None
     for p in all_players:
         if name.strip().lower() < p["name"].strip().lower():
@@ -159,15 +146,9 @@ def add_new_player(
             break
 
     if insert_before_row is None:
-        # Append at end
         insert_before_row = (all_players[-1]["row"] + 1) if all_players else 2
 
-    sheet_metadata = (
-        service.spreadsheets()
-        .get(spreadsheetId=sheet_id)
-        .execute()
-    )
-    # Find the sheet ID for "History"
+    sheet_metadata = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
     history_sheet_id = None
     for s in sheet_metadata["sheets"]:
         if s["properties"]["title"] == HISTORY_SHEET:
@@ -186,7 +167,7 @@ def add_new_player(
                     "range": {
                         "sheetId": history_sheet_id,
                         "dimension": "ROWS",
-                        "startIndex": insert_before_row - 1,  # 0-based
+                        "startIndex": insert_before_row - 1,
                         "endIndex": insert_before_row,
                     },
                     "inheritFromBefore": False,
@@ -195,7 +176,7 @@ def add_new_player(
         },
     ).execute()
 
-    # Write the player data into the new row
+    # Write player data
     service.spreadsheets().values().update(
         spreadsheetId=sheet_id,
         range=f"{HISTORY_SHEET}!A{insert_before_row}:C{insert_before_row}",
@@ -204,16 +185,11 @@ def add_new_player(
     ).execute()
 
 
-def get_last_round_results(sheet_id: str, token_info: dict) -> list[dict]:
+def get_last_round_results(sheet_id: str, _token_info: dict = None) -> list[dict]:
     """
-    Read last round scores and handicaps from History for display
-    on the results screen. Returns players who have a score in col B,
-    sorted by score descending.
+    Read last round scores from History, sorted by score descending.
     """
-    players = get_all_players(sheet_id, token_info)
-    service = _sheets_service(token_info)
-
-    # Re-read including col B (last score)
+    service = _sheets_service()
     result = (
         service.spreadsheets()
         .values()
@@ -238,14 +214,13 @@ def get_last_round_results(sheet_id: str, token_info: dict) -> list[dict]:
             continue
         scored.append({"name": name, "score": score, "new_handicap": hc})
 
-    # Sort by score descending
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored
 
 
-def get_last_round_date(sheet_id: str, token_info: dict) -> str:
+def get_last_round_date(sheet_id: str, _token_info: dict = None) -> str:
     """Read the last round date from E1."""
-    service = _sheets_service(token_info)
+    service = _sheets_service()
     result = (
         service.spreadsheets()
         .values()
