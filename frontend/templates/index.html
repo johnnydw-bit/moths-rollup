@@ -294,19 +294,19 @@ let state = {
   newPlayerQueue: [],
   currentNewPlayer: null,
 };
- 
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   state.currentScreen = id;
 }
- 
+
 function goBack() { showScreen('screen1'); }
- 
+
 async function init() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('roundDate').value = today;
- 
+
   try {
     const resp = await fetch('/auth/status');
     const data = await resp.json();
@@ -314,76 +314,76 @@ async function init() {
   } catch(e) {
     updateStatus('Ready');
   }
- 
+
   // Auto-load on Monday (1) or Thursday (4)
   const day = new Date(today + 'T12:00:00').getDay();
   if (day === 1 || day === 4) {
     loadPlayers();
   }
 }
- 
+
 function updateStatus(msg, type = 'neutral') {
   const el = document.getElementById('s1Status');
   el.textContent = msg;
   el.className = `status-bar status-${type}`;
 }
- 
+
 function showS1Error(msg) {
   document.getElementById('s1ErrorMsg').textContent = msg;
   document.getElementById('s1Error').style.display = 'block';
   updateStatus('Load failed', 'danger');
 }
- 
+
 function clearS1Error() {
   document.getElementById('s1Error').style.display = 'none';
 }
- 
+
 async function loadPlayers() {
   clearS1Error();
- 
+
   const date = document.getElementById('roundDate').value;
   if (!date) {
     showS1Error('Please select a round date.');
     return;
   }
- 
+
   const day = new Date(date + 'T12:00:00').getDay();
   if (day !== 1 && day !== 4) {
     showS1Error("MOTH's Rollup is on Mondays and Thursdays only.");
     return;
   }
- 
+
   updateStatus('Loading players from Intelligent Golf…', 'neutral');
- 
+
   try {
     const resp = await fetch('/api/load-players', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({date}),
     });
- 
+
     if (!resp.ok) {
       const err = await resp.json();
       showS1Error(err.detail || 'Failed to load players.');
       return;
     }
- 
+
     const data = await resp.json();
     state.players = data.players;
     state.roundDate = data.date;
     state.newPlayerQueue = data.new_players || [];
- 
+
     if (state.newPlayerQueue.length > 0) {
       processNewPlayerQueue();
     } else {
       openScoreEntry();
     }
- 
+
   } catch(e) {
     showS1Error('Network error. Please check your connection and try again.');
   }
 }
- 
+
 function processNewPlayerQueue() {
   if (state.newPlayerQueue.length === 0) { openScoreEntry(); return; }
   state.currentNewPlayer = state.newPlayerQueue.shift();
@@ -391,7 +391,7 @@ function processNewPlayerQueue() {
   document.getElementById('newPlayerHC').value = '';
   document.getElementById('newPlayerOverlay').classList.add('open');
 }
- 
+
 async function confirmNewPlayer() {
   const hc = parseInt(document.getElementById('newPlayerHC').value);
   if (isNaN(hc) || hc < 0 || hc > 54) { alert('Please enter a valid handicap (0–54).'); return; }
@@ -405,13 +405,13 @@ async function confirmNewPlayer() {
   closeOverlay('newPlayerOverlay');
   processNewPlayerQueue();
 }
- 
+
 function skipNewPlayer() {
   state.players = state.players.filter(p => p.name !== state.currentNewPlayer);
   closeOverlay('newPlayerOverlay');
   processNewPlayerQueue();
 }
- 
+
 function openScoreEntry() {
   const dateLabel = new Date(state.roundDate + 'T12:00:00').toLocaleDateString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
@@ -420,11 +420,10 @@ function openScoreEntry() {
   renderGrid();
   showScreen('screen2');
 }
- 
+
 function renderGrid() {
   const tbody = document.getElementById('scoreGrid');
   tbody.innerHTML = '';
-  // Keep a name->index map for the DOM order
   state.players.forEach((p, i) => {
     const tr = document.createElement('tr');
     tr.setAttribute('data-name', p.name);
@@ -444,9 +443,8 @@ function renderGrid() {
   });
   updateGridDisplay();
 }
- 
+
 function updateGridDisplay() {
-  // Update New HC cells by player name
   state.players.forEach(p => {
     const cell = document.querySelector(`td[data-nhc="${p.name}"]`);
     if (!cell) return;
@@ -460,30 +458,29 @@ function updateGridDisplay() {
   });
   updateGridRankings();
 }
- 
+
 function updateGridRankings() {
   const rows = document.querySelectorAll('#scoreGrid tr');
   rows.forEach(r => r.classList.remove('rank-gold', 'rank-silver', 'rank-bronze'));
- 
+
   const scored = state.players
     .filter(p => p.score !== null && p.score !== undefined && p.score !== '')
     .sort((a, b) => Number(b.score) - Number(a.score));
- 
-  // Find rows by data-name attribute
+
   ['rank-gold', 'rank-silver', 'rank-bronze'].forEach((cls, rank) => {
     if (!scored[rank]) return;
     const row = document.querySelector(`#scoreGrid tr[data-name="${scored[rank].name}"]`);
     if (row) row.classList.add(cls);
   });
 }
- 
+
 async function onScoreChange(idx, val) {
   const score = val === '' ? null : parseInt(val);
   if (score !== null && isNaN(score)) return;
   state.players[idx].score = score;
   await recalculate();
 }
- 
+
 function onScoreKey(event, idx) {
   if (event.key === 'Enter' || event.key === 'Tab') {
     event.preventDefault();
@@ -492,12 +489,9 @@ function onScoreKey(event, idx) {
     else inputs[idx].blur();
   }
 }
- 
-// Debounce timer for sheet saves
-let saveTimer = null;
- 
+
 async function recalculate() {
-  setSaveState('saving');
+  // Calculate only — no sheet write, instant
   try {
     const resp = await fetch('/api/autosave', {
       method: 'POST',
@@ -505,7 +499,6 @@ async function recalculate() {
       body: JSON.stringify({date: state.roundDate, players: state.players}),
     });
     const data = await resp.json();
-    // Update scores and handicaps from server response, preserving player order
     data.players.forEach(serverPlayer => {
       const p = state.players.find(p => p.name === serverPlayer.name);
       if (p) {
@@ -515,24 +508,55 @@ async function recalculate() {
       }
     });
     updateGridDisplay();
-    setSaveState('saved');
   } catch(e) {
-    setSaveState('error');
+    console.error('Calculate error', e);
   }
 }
- 
+
+async function saveRound() {
+  const btn = document.getElementById('saveRoundBtn');
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch('/api/save-round', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({date: state.roundDate, players: state.players}),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert('Save failed: ' + (err.detail || 'Unknown error'));
+      btn.textContent = 'Save Round';
+      btn.disabled = false;
+      return;
+    }
+
+    const data = await resp.json();
+    // Show results screen
+    renderResults(data.players, data.date, true);
+    showScreen('screen3');
+
+  } catch(e) {
+    alert('Network error saving round.');
+    btn.textContent = 'Save Round';
+    btn.disabled = false;
+  }
+}
+
 function setSaveState(s) {
   const dot = document.getElementById('saveDot');
   const label = document.getElementById('saveLabel');
   if (s === 'saving') {
-    dot.style.background = '#888'; label.style.color = '#888'; label.textContent = 'Saving…';
+    dot.style.background = '#888'; label.style.color = '#888'; label.textContent = 'Calculating…';
   } else if (s === 'saved') {
-    dot.style.background = '#3B6D11'; label.style.color = '#3B6D11'; label.textContent = 'Saved';
+    dot.style.background = '#3B6D11'; label.style.color = '#3B6D11'; label.textContent = 'Ready';
   } else {
-    dot.style.background = '#A32D2D'; label.style.color = '#A32D2D'; label.textContent = 'Save error — tap score to retry';
+    dot.style.background = '#A32D2D'; label.style.color = '#A32D2D'; label.textContent = 'Error';
   }
 }
- 
+
 async function showLastRound() {
   try {
     const resp = await fetch('/api/last-round');
@@ -544,7 +568,7 @@ async function showLastRound() {
     alert('Network error loading last round.');
   }
 }
- 
+
 function renderResults(players, dateStr, isCurrent) {
   document.getElementById('s3DateLabel').textContent = `MOTH's Rollup · ${dateStr}`;
   const tbody = document.getElementById('resultsGrid');
@@ -568,16 +592,17 @@ function renderResults(players, dateStr, isCurrent) {
   document.getElementById('s3Status').textContent = isCurrent ? 'Handicaps updated · Sheet saved' : dateStr;
   document.getElementById('s3Status').className = isCurrent ? 'status-bar status-success' : 'status-bar status-neutral';
 }
- 
+
 function confirmReload() {
   closeOverlay('reloadOverlay');
   state.players = [];
   loadPlayers();
 }
- 
+
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
- 
+
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
 </body>
 </html>
