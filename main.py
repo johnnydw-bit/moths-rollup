@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -40,17 +40,14 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
 
-# --- Config from environment ---
+# Config from environment
 SHEET_ID = os.getenv("SHEET_ID")
 IG_USERNAME = os.getenv("IG_USERNAME")
 IG_PIN = os.getenv("IG_PIN")
 
-# Shared session context passed to sheets functions
 def get_context():
     return {"sheet_id": SHEET_ID}
 
-
-# --- Routes ---
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
@@ -59,7 +56,6 @@ async def root(request: Request):
 
 @app.get("/auth/status")
 async def auth_status():
-    """Return last round date for status display."""
     try:
         last_date = get_last_round_date(SHEET_ID, get_context())
     except Exception:
@@ -67,23 +63,15 @@ async def auth_status():
     return {"last_round_date": last_date}
 
 
-# --- Load Players ---
-
 class LoadRequest(BaseModel):
-    date: str  # YYYY-MM-DD
+    date: str
 
 
 @app.post("/api/load-players")
 async def load_players(body: LoadRequest):
-    """
-    Scrape players from Intelligent Golf for the given date,
-    look up their handicaps from the History sheet,
-    and return the player list ready for score entry.
-    """
     if not IG_USERNAME or not IG_PIN:
         raise HTTPException(500, "Intelligent Golf credentials not configured on server.")
 
-    # Scrape player names
     try:
         names = await scrape_players(IG_USERNAME, IG_PIN, body.date)
     except Exception as e:
@@ -92,7 +80,6 @@ async def load_players(body: LoadRequest):
     if not names:
         raise HTTPException(404, "No players found for this date.")
 
-    # Look up handicaps from History sheet
     try:
         all_players = get_all_players(SHEET_ID, get_context())
     except Exception as e:
@@ -110,14 +97,8 @@ async def load_players(body: LoadRequest):
         else:
             players.append({"name": name, "handicap": hc, "score": None, "new_player": False})
 
-    return {
-        "date": body.date,
-        "players": players,
-        "new_players": new_players,
-    }
+    return {"date": body.date, "players": players, "new_players": new_players}
 
-
-# --- Add New Player ---
 
 class NewPlayerRequest(BaseModel):
     name: str
@@ -126,15 +107,12 @@ class NewPlayerRequest(BaseModel):
 
 @app.post("/api/new-player")
 async def new_player(body: NewPlayerRequest):
-    """Add a new player to the History sheet."""
     try:
         add_new_player(SHEET_ID, get_context(), body.name, body.handicap)
     except Exception as e:
         raise HTTPException(500, f"Could not add player to sheet: {str(e)}")
     return {"ok": True, "name": body.name, "handicap": body.handicap}
 
-
-# --- Autosave (calculate handicaps, no sheet write) ---
 
 class ScoreUpdate(BaseModel):
     date: str
@@ -143,48 +121,28 @@ class ScoreUpdate(BaseModel):
 
 @app.post("/api/autosave")
 async def autosave(body: ScoreUpdate):
+    """Calculate handicaps only — no sheet write. Fast."""
     results = calculate_new_handicaps(body.players)
     for r in results:
         r["adj_display"] = format_adjustment(r.get("adjustment"))
-    
-    # Write to sheet if any scores exist
-    if any(p.get("score") is not None for p in body.players):
-        try:
-            save_round_results(SHEET_ID, get_context(), results, body.date)
-        except Exception:
-            pass  # Don't fail the response if sheet write fails
-    
     return {"players": results}
 
 
-# --- Save Round ---
-
 @app.post("/api/save-round")
 async def save_round(body: ScoreUpdate):
-    """
-    Calculate final handicaps and write results to the History sheet.
-    """
+    """Calculate final handicaps and write to Google Sheet."""
     results = calculate_new_handicaps(body.players)
     try:
         save_round_results(SHEET_ID, get_context(), results, body.date)
     except Exception as e:
         raise HTTPException(500, f"Failed to save to Google Sheets: {str(e)}")
-
     for r in results:
         r["adj_display"] = format_adjustment(r.get("adjustment"))
+    return {"ok": True, "players": results, "date": body.date}
 
-    return {
-        "ok": True,
-        "players": results,
-        "date": body.date,
-    }
-
-
-# --- Last Round Results ---
 
 @app.get("/api/last-round")
 async def last_round():
-    """Return last round results from History sheet."""
     try:
         results = get_last_round_results(SHEET_ID, get_context())
         date = get_last_round_date(SHEET_ID, get_context())
