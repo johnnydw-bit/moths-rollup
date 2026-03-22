@@ -497,7 +497,7 @@ function onScoreKey(event, idx) {
 }
 
 async function recalculate() {
-  // Calculate only — no sheet write, instant
+  setSaveState('saving');
   try {
     const resp = await fetch('/api/autosave', {
       method: 'POST',
@@ -514,7 +514,9 @@ async function recalculate() {
       }
     });
     updateGridDisplay();
+    setSaveState('saved');
   } catch(e) {
+    setSaveState('error');
     console.error('Calculate error', e);
   }
 }
@@ -555,9 +557,9 @@ function setSaveState(s) {
   const dot = document.getElementById('saveDot');
   const label = document.getElementById('saveLabel');
   if (s === 'saving') {
-    dot.style.background = '#888'; label.style.color = '#888'; label.textContent = 'Calculating…';
+    dot.style.background = '#888'; label.style.color = '#888'; label.textContent = 'Saving,,,';
   } else if (s === 'saved') {
-    dot.style.background = '#3B6D11'; label.style.color = '#3B6D11'; label.textContent = 'Ready';
+    dot.style.background = '#3B6D11'; label.style.color = '#3B6D11'; label.textContent = 'Saved';
   } else {
     dot.style.background = '#A32D2D'; label.style.color = '#A32D2D'; label.textContent = 'Error';
   }
