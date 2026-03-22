@@ -115,7 +115,7 @@
     table.xl tbody td.nhc { text-align: center; white-space: nowrap; font-size: 9px; }
     table.xl tbody td.sc input {
       width: 100%; border: none; background: transparent;
-      font-size: 10px; text-align: center; color: #000;
+      font-size: 12px; text-align: center; color: #000;
       font-family: Arial, Helvetica, sans-serif; padding: 0; outline: none;
     }
     table.xl tbody tr.rank-gold td { background: #FFF9E0; }
@@ -126,9 +126,9 @@
     .results-wrap { flex: 1; overflow-y: auto; background: #fff; }
     table.rt { width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; }
     table.rt thead tr { background: #2D2B5B; }
-    table.rt thead th { font-size: 10px; font-weight: 600; color: #FFD700; padding: 5px 6px; border: 1px solid #2D2B5B; text-align: center; }
+    table.rt thead th { font-size: 12px; font-weight: 600; color: #FFD700; padding: 5px 6px; border: 1px solid #2D2B5B; text-align: center; }
     table.rt thead th.left { text-align: left; }
-    table.rt tbody td { font-size: 10px; color: #000; padding: 3px 6px; border: 1px solid #ccc; background: #fff; vertical-align: middle; }
+    table.rt tbody td { font-size: 12px; color: #000; padding: 3px 6px; border: 1px solid #ccc; background: #fff; vertical-align: middle; }
     table.rt tbody td.c { text-align: center; }
     table.rt tbody tr.gold td { background: #FFF9E0; }
     table.rt tbody tr.silver td { background: #F5F5F5; }
@@ -294,20 +294,19 @@ let state = {
   newPlayerQueue: [],
   currentNewPlayer: null,
 };
-
+ 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   state.currentScreen = id;
 }
-
+ 
 function goBack() { showScreen('screen1'); }
-
+ 
 async function init() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('roundDate').value = today;
-
-  // Get last round date
+ 
   try {
     const resp = await fetch('/auth/status');
     const data = await resp.json();
@@ -315,76 +314,76 @@ async function init() {
   } catch(e) {
     updateStatus('Ready');
   }
-
+ 
   // Auto-load on Monday (1) or Thursday (4)
   const day = new Date(today + 'T12:00:00').getDay();
   if (day === 1 || day === 4) {
     loadPlayers();
   }
 }
-
+ 
 function updateStatus(msg, type = 'neutral') {
   const el = document.getElementById('s1Status');
   el.textContent = msg;
   el.className = `status-bar status-${type}`;
 }
-
+ 
 function showS1Error(msg) {
   document.getElementById('s1ErrorMsg').textContent = msg;
   document.getElementById('s1Error').style.display = 'block';
   updateStatus('Load failed', 'danger');
 }
-
+ 
 function clearS1Error() {
   document.getElementById('s1Error').style.display = 'none';
 }
-
+ 
 async function loadPlayers() {
   clearS1Error();
-
+ 
   const date = document.getElementById('roundDate').value;
   if (!date) {
     showS1Error('Please select a round date.');
     return;
   }
-
+ 
   const day = new Date(date + 'T12:00:00').getDay();
   if (day !== 1 && day !== 4) {
     showS1Error("MOTH's Rollup is on Mondays and Thursdays only.");
     return;
   }
-
+ 
   updateStatus('Loading players from Intelligent Golf…', 'neutral');
-
+ 
   try {
     const resp = await fetch('/api/load-players', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({date}),
     });
-
+ 
     if (!resp.ok) {
       const err = await resp.json();
       showS1Error(err.detail || 'Failed to load players.');
       return;
     }
-
+ 
     const data = await resp.json();
     state.players = data.players;
     state.roundDate = data.date;
     state.newPlayerQueue = data.new_players || [];
-
+ 
     if (state.newPlayerQueue.length > 0) {
       processNewPlayerQueue();
     } else {
       openScoreEntry();
     }
-
+ 
   } catch(e) {
     showS1Error('Network error. Please check your connection and try again.');
   }
 }
-
+ 
 function processNewPlayerQueue() {
   if (state.newPlayerQueue.length === 0) { openScoreEntry(); return; }
   state.currentNewPlayer = state.newPlayerQueue.shift();
@@ -392,7 +391,7 @@ function processNewPlayerQueue() {
   document.getElementById('newPlayerHC').value = '';
   document.getElementById('newPlayerOverlay').classList.add('open');
 }
-
+ 
 async function confirmNewPlayer() {
   const hc = parseInt(document.getElementById('newPlayerHC').value);
   if (isNaN(hc) || hc < 0 || hc > 54) { alert('Please enter a valid handicap (0–54).'); return; }
@@ -406,13 +405,13 @@ async function confirmNewPlayer() {
   closeOverlay('newPlayerOverlay');
   processNewPlayerQueue();
 }
-
+ 
 function skipNewPlayer() {
   state.players = state.players.filter(p => p.name !== state.currentNewPlayer);
   closeOverlay('newPlayerOverlay');
   processNewPlayerQueue();
 }
-
+ 
 function openScoreEntry() {
   const dateLabel = new Date(state.roundDate + 'T12:00:00').toLocaleDateString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
@@ -421,17 +420,14 @@ function openScoreEntry() {
   renderGrid();
   showScreen('screen2');
 }
-
+ 
 function renderGrid() {
   const tbody = document.getElementById('scoreGrid');
   tbody.innerHTML = '';
+  // Keep a name->index map for the DOM order
   state.players.forEach((p, i) => {
-    const adjDisplay = p.adjustment !== null && p.adjustment !== undefined
-      ? (p.adjustment > 0 ? `(+${p.adjustment})` : p.adjustment < 0 ? `(${p.adjustment})` : '(0)')
-      : '';
-    const newHCDisplay = p.new_handicap !== null && p.new_handicap !== undefined
-      ? `${p.new_handicap} <span style="font-size:9px">${adjDisplay}</span>` : '';
     const tr = document.createElement('tr');
+    tr.setAttribute('data-name', p.name);
     tr.innerHTML = `
       <td>${p.name}</td>
       <td class="c">${p.handicap ?? ''}</td>
@@ -442,44 +438,52 @@ function renderGrid() {
         onkeydown="onScoreKey(event, ${i})"
         style="width:100%;border:none;background:transparent;font-size:10px;text-align:center;font-family:Arial,sans-serif;padding:0;outline:none;"
       /></td>
-      <td class="nhc" id="nhc_${i}">${newHCDisplay}</td>
+      <td class="nhc" data-nhc="${p.name}"></td>
     `;
     tbody.appendChild(tr);
   });
+  updateGridDisplay();
+}
+ 
+function updateGridDisplay() {
+  // Update New HC cells by player name
+  state.players.forEach(p => {
+    const cell = document.querySelector(`td[data-nhc="${p.name}"]`);
+    if (!cell) return;
+    if (p.new_handicap !== null && p.new_handicap !== undefined) {
+      const adj = p.adjustment;
+      const adjStr = adj > 0 ? `(+${adj})` : adj < 0 ? `(${adj})` : '(0)';
+      cell.innerHTML = `${p.new_handicap} <span style="font-size:9px">${adjStr}</span>`;
+    } else {
+      cell.innerHTML = '';
+    }
+  });
   updateGridRankings();
 }
-
+ 
 function updateGridRankings() {
   const rows = document.querySelectorAll('#scoreGrid tr');
   rows.forEach(r => r.classList.remove('rank-gold', 'rank-silver', 'rank-bronze'));
-
+ 
   const scored = state.players
     .filter(p => p.score !== null && p.score !== undefined && p.score !== '')
     .sort((a, b) => Number(b.score) - Number(a.score));
-
+ 
+  // Find rows by data-name attribute
   ['rank-gold', 'rank-silver', 'rank-bronze'].forEach((cls, rank) => {
     if (!scored[rank]) return;
-    const name = scored[rank].name;
-    rows.forEach(row => {
-      if (row.cells[0] && row.cells[0].textContent.trim() === name) {
-        row.classList.add(cls);
-      }
-    });
+    const row = document.querySelector(`#scoreGrid tr[data-name="${scored[rank].name}"]`);
+    if (row) row.classList.add(cls);
   });
 }
-// This finds rows by player name rather than array index so order doesn't matter. Can you update this in GitHub and redeploy? ⛳
-
-
-
-
-
+ 
 async function onScoreChange(idx, val) {
   const score = val === '' ? null : parseInt(val);
   if (score !== null && isNaN(score)) return;
   state.players[idx].score = score;
   await recalculate();
 }
-
+ 
 function onScoreKey(event, idx) {
   if (event.key === 'Enter' || event.key === 'Tab') {
     event.preventDefault();
@@ -488,7 +492,10 @@ function onScoreKey(event, idx) {
     else inputs[idx].blur();
   }
 }
-
+ 
+// Debounce timer for sheet saves
+let saveTimer = null;
+ 
 async function recalculate() {
   setSaveState('saving');
   try {
@@ -498,25 +505,22 @@ async function recalculate() {
       body: JSON.stringify({date: state.roundDate, players: state.players}),
     });
     const data = await resp.json();
-    state.players = data.players;
-    state.players.forEach((p, i) => {
-      const cell = document.getElementById(`nhc_${i}`);
-      if (!cell) return;
-      if (p.new_handicap !== null && p.new_handicap !== undefined) {
-        const adj = p.adjustment;
-        const adjStr = adj > 0 ? `(+${adj})` : adj < 0 ? `(${adj})` : '(0)';
-        cell.innerHTML = `${p.new_handicap} <span style="font-size:9px">${adjStr}</span>`;
-      } else {
-        cell.innerHTML = '';
+    // Update scores and handicaps from server response, preserving player order
+    data.players.forEach(serverPlayer => {
+      const p = state.players.find(p => p.name === serverPlayer.name);
+      if (p) {
+        p.new_handicap = serverPlayer.new_handicap;
+        p.adjustment = serverPlayer.adjustment;
+        p.score = serverPlayer.score;
       }
     });
-    updateGridRankings();
+    updateGridDisplay();
     setSaveState('saved');
   } catch(e) {
     setSaveState('error');
   }
 }
-
+ 
 function setSaveState(s) {
   const dot = document.getElementById('saveDot');
   const label = document.getElementById('saveLabel');
@@ -528,7 +532,7 @@ function setSaveState(s) {
     dot.style.background = '#A32D2D'; label.style.color = '#A32D2D'; label.textContent = 'Save error — tap score to retry';
   }
 }
-
+ 
 async function showLastRound() {
   try {
     const resp = await fetch('/api/last-round');
@@ -540,7 +544,7 @@ async function showLastRound() {
     alert('Network error loading last round.');
   }
 }
-
+ 
 function renderResults(players, dateStr, isCurrent) {
   document.getElementById('s3DateLabel').textContent = `MOTH's Rollup · ${dateStr}`;
   const tbody = document.getElementById('resultsGrid');
@@ -564,15 +568,15 @@ function renderResults(players, dateStr, isCurrent) {
   document.getElementById('s3Status').textContent = isCurrent ? 'Handicaps updated · Sheet saved' : dateStr;
   document.getElementById('s3Status').className = isCurrent ? 'status-bar status-success' : 'status-bar status-neutral';
 }
-
+ 
 function confirmReload() {
   closeOverlay('reloadOverlay');
   state.players = [];
   loadPlayers();
 }
-
+ 
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
-
+ 
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
