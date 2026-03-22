@@ -33,13 +33,12 @@
       z-index: 100;
     }
     .header-logo {
-      width: 36px; height: 36px;
+      width: 44px; height: 44px;
       border-radius: 50%;
       background: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 700; color: #2D2B5B;
-      font-family: Georgia, serif;
       flex-shrink: 0;
+      overflow: hidden;
+      padding: 3px;
     }
     .header-title { flex: 1; }
     .header-title .club { color: #fff; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
@@ -157,7 +156,9 @@
 <!-- SCREEN 1 — Start -->
 <div id="screen1" class="screen active">
   <div class="header">
-    <div class="header-logo">B</div>
+      <div class="header-logo">
+       <img src="/static/MOTHS_APP_LOGO.JPG" alt="Bramley Golf Club" style="width:100%;height:100%;object-fit:contain;"/>
+    </div>
     <div class="header-title">
       <div class="club">Bramley Golf Club</div>
       <div class="society">MOTH's Rollup</div>
