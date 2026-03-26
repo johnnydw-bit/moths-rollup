@@ -1,10 +1,13 @@
+# MOTH's Rollup - main.py
+# Updated: 2026-03-26
+
 """
 MOTH's Rollup - FastAPI backend
 No authentication required - credentials hardcoded via environment variables.
 """
 
 import os
-from datetime import datetime
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
@@ -15,7 +18,7 @@ from fastapi import Request
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from backend.handicap import calculate_new_handicaps, format_adjustment
+from backend.handicap import calculate_new_handicaps, calculate_team_scores, format_adjustment
 from backend.sheets import (
     get_all_players,
     save_round_results,
@@ -40,7 +43,6 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
 
-# Config from environment
 SHEET_ID = os.getenv("SHEET_ID")
 IG_USERNAME = os.getenv("IG_USERNAME")
 IG_PIN = os.getenv("IG_PIN")
@@ -93,9 +95,9 @@ async def load_players(body: LoadRequest):
         hc = name_to_hc.get(name.strip().lower())
         if hc is None:
             new_players.append(name)
-            players.append({"name": name, "handicap": None, "score": None, "new_player": True})
+            players.append({"name": name, "handicap": None, "score": None, "team": None, "new_player": True})
         else:
-            players.append({"name": name, "handicap": hc, "score": None, "new_player": False})
+            players.append({"name": name, "handicap": hc, "score": None, "team": None, "new_player": False})
 
     return {"date": body.date, "players": players, "new_players": new_players}
 
@@ -117,28 +119,39 @@ async def new_player(body: NewPlayerRequest):
 class ScoreUpdate(BaseModel):
     date: str
     players: list[dict]
+    team_mode: bool = False
 
 
 @app.post("/api/autosave")
 async def autosave(body: ScoreUpdate):
     """Calculate handicaps only — no sheet write. Fast."""
-    results = calculate_new_handicaps(body.players)
+    results = calculate_new_handicaps(body.players, team_mode=body.team_mode)
     for r in results:
         r["adj_display"] = format_adjustment(r.get("adjustment"))
-    return {"players": results}
+
+    team_scores = []
+    if body.team_mode:
+        team_scores = calculate_team_scores(results)
+
+    return {"players": results, "team_scores": team_scores}
 
 
 @app.post("/api/save-round")
 async def save_round(body: ScoreUpdate):
     """Calculate final handicaps and write to Google Sheet."""
-    results = calculate_new_handicaps(body.players)
+    results = calculate_new_handicaps(body.players, team_mode=body.team_mode)
     try:
         save_round_results(SHEET_ID, get_context(), results, body.date)
     except Exception as e:
         raise HTTPException(500, f"Failed to save to Google Sheets: {str(e)}")
     for r in results:
         r["adj_display"] = format_adjustment(r.get("adjustment"))
-    return {"ok": True, "players": results, "date": body.date}
+
+    team_scores = []
+    if body.team_mode:
+        team_scores = calculate_team_scores(results)
+
+    return {"ok": True, "players": results, "date": body.date, "team_scores": team_scores}
 
 
 @app.get("/api/last-round")
