@@ -229,7 +229,6 @@
       <button class="team-size-btn" id="size3" onclick="setTeamSize(3)">Triples (3)</button>
       <button class="team-size-btn" id="size4" onclick="setTeamSize(4)">Fours (4)</button>
     </div>
-    <!-- Structure options shown when multiple valid structures exist -->
     <div id="structureOptions" style="display:none; margin-bottom:6px;">
       <div class="field-label" style="margin-bottom:4px;">Select team structure</div>
       <div class="structure-options" id="structureOptionsList"></div>
@@ -266,7 +265,6 @@
     </table>
   </div>
 
-  <!-- Add player button in individual mode -->
   <div style="padding:6px 10px; background:#f8f8f8; border-top:1px solid #ddd;" id="addPlayerBar">
     <button onclick="addWalkupPlayer()" style="width:100%;padding:8px;background:#3B6D11;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
       ➕ Add walk-up player
@@ -386,7 +384,7 @@ let state = {
   playerToRemove: null,
   gameMode: 'individual',
   teamSize: 2,
-  selectedStructure: null,  // the chosen team structure
+  selectedStructure: null,
   teamScores: [],
   walkupFoundHC: null,
 };
@@ -397,43 +395,43 @@ const TEAM_NAMES = ['', 'Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Team 
 // Team structure calculator
 // ═══════════════════════════════════════
 function getAllValidStructures(n, preferredSize) {
-  // Find ALL valid team structures for n players.
-  // Valid = all teams have >= 2 players, sizes differ by at most 1.
-  // Returns array sorted by closeness to preferredSize.
+  // Rules:
+  // - All teams must have between 2 and 4 players (hard limits)
+  // - Team sizes within a round must differ by at most 1
+  // Returns all valid structures sorted by closeness to preferredSize
 
   if (n < 4) return [];
 
   const seen = new Set();
   const results = [];
 
-  for (let numTeams = 2; numTeams <= Math.floor(n / 2); numTeams++) {
+  for (let numTeams = 2; numTeams <= n; numTeams++) {
     const base = Math.floor(n / numTeams);
     const remainder = n % numTeams;
+    const largeSize = remainder > 0 ? base + 1 : base;
 
+    // Hard limits: teams must be 2-4 players
     if (base < 2) continue;
+    if (largeSize > 4) continue;
 
     const key = `${numTeams}_${base}_${remainder}`;
     if (seen.has(key)) continue;
     seen.add(key);
 
-    const numLarge = remainder;
-    const numSmall = numTeams - remainder;
-    const largeSize = remainder > 0 ? base + 1 : base;
     const diff = Math.abs(base - preferredSize);
-
     results.push({
       numTeams,
       smallSize: base,
       largeSize,
-      numLarge,
-      numSmall,
+      numLarge: remainder,
+      numSmall: numTeams - remainder,
       diff,
-      description: buildDescription(numTeams, base, numLarge),
+      description: buildDescription(numTeams, base, remainder),
       valid: true,
     });
   }
 
-  // Sort by closeness to preferred size
+  // Sort by closeness to preferred size, then by number of teams
   results.sort((a, b) => a.diff - b.diff || a.numTeams - b.numTeams);
   return results;
 }
@@ -457,25 +455,23 @@ function updateTeamStructureUI() {
   const listEl = document.getElementById('structureOptionsList');
 
   if (structures.length === 0) {
-    infoEl.textContent = n < 4 ? 'Not enough players for teams' : `Cannot form valid teams with ${n} players`;
+    infoEl.textContent = n < 4 ? 'Not enough players for teams' : `No valid team structure for ${n} players with teams of 2-4`;
     infoEl.className = 'team-structure-info error';
     optionsEl.style.display = 'none';
     state.selectedStructure = null;
     return;
   }
 
-  // Auto-select best (first) structure if none selected or current invalid
+  // Auto-select best structure if none selected or current is no longer valid
   if (!state.selectedStructure || !structures.find(s => s.description === state.selectedStructure.description)) {
     state.selectedStructure = structures[0];
   }
 
   if (structures.length === 1) {
-    // Only one option — just show it
     infoEl.textContent = `${n} players → ${structures[0].description}`;
     infoEl.className = 'team-structure-info';
     optionsEl.style.display = 'none';
   } else {
-    // Multiple options — show picker
     infoEl.textContent = '';
     optionsEl.style.display = 'block';
     listEl.innerHTML = '';
@@ -491,7 +487,6 @@ function updateTeamStructureUI() {
 
 function selectStructure(structure) {
   state.selectedStructure = structure;
-  // Clear teams since structure changed
   state.players.forEach(p => p.team = null);
   updateTeamStructureUI();
   updateUnassignedWarning();
@@ -715,7 +710,6 @@ function setGameMode(mode) {
 function setTeamSize(size) {
   state.teamSize = size;
   [2, 3, 4].forEach(s => document.getElementById(`size${s}`).classList.toggle('active', s === size));
-  // Auto-clear teams and reset structure when format changes
   state.players.forEach(p => p.team = null);
   state.selectedStructure = null;
   updateTeamStructureUI();
@@ -734,7 +728,7 @@ function getTeamCounts() {
 
 function getMaxTeamSize() {
   const s = getActiveStructure();
-  return s ? s.largeSize : state.teamSize + 1;
+  return s ? s.largeSize : 4;
 }
 
 function validateTeamAssignment(name, newTeam) {
