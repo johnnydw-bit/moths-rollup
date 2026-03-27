@@ -1,5 +1,5 @@
 <!-- MOTH's Rollup - frontend/templates/index.html -->
-<!-- Updated: 2026-03-26 -->
+<!-- Updated: 2026-03-27 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,35 +13,10 @@
   <link rel="apple-touch-icon" href="/static/icon-192.png"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; min-height: 100vh; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f5f5f0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
-    .header {
-      background: #2D2B5B;
-      padding: 12px 16px 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .header-logo {
-      width: 44px; height: 44px;
-      border-radius: 50%;
-      background: #fff;
-      flex-shrink: 0;
-      overflow: hidden;
-      padding: 3px;
-    }
+    .header { background: #2D2B5B; padding: 12px 16px 10px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+    .header-logo { width: 44px; height: 44px; border-radius: 50%; background: #fff; flex-shrink: 0; overflow: hidden; padding: 3px; }
     .header-logo img { width: 100%; height: 100%; object-fit: contain; }
     .header-title { flex: 1; }
     .header-title .club { color: #fff; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
@@ -58,7 +33,6 @@
     .field-label { font-size: 10px; color: #2D2B5B; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
     .field-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #2D2B5B40; font-size: 15px; background: #fff; color: #000; -webkit-appearance: none; }
     .field-input:focus { outline: none; border-color: #2D2B5B; }
-
     .btn-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .big-btn { border-radius: 12px; padding: 16px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; cursor: pointer; font-family: inherit; }
     .big-btn .bi { font-size: 24px; }
@@ -66,12 +40,10 @@
     .big-btn .bs { font-size: 10px; opacity: 0.7; text-align: center; }
     .btn-navy { background: #2D2B5B; color: #fff; }
     .btn-outline { background: #fff; color: #2D2B5B; border: 1.5px solid #2D2B5B !important; }
-
     .status-bar { text-align: center; font-size: 11px; font-weight: 500; padding: 6px; border-radius: 20px; }
     .status-neutral { background: #2D2B5B15; color: #2D2B5B; }
     .status-success { background: #EAF3DE; color: #3B6D11; }
     .status-danger { background: #FCEBEB; color: #A32D2D; }
-
     .error-box { background: #FCEBEB; border: 1px solid #A32D2D30; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #A32D2D; line-height: 1.5; }
     .error-retry { font-size: 11px; font-weight: 600; text-decoration: underline; margin-top: 4px; display: block; }
 
@@ -80,28 +52,26 @@
     .toggle-btn { flex: 1; padding: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; background: #fff; color: #2D2B5B; transition: background 0.15s; }
     .toggle-btn.active { background: #2D2B5B; color: #FFD700; }
 
-    /* Team config section */
-    .team-config { background: #f0f0f8; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-    .team-config-label { font-size: 10px; font-weight: 700; color: #2D2B5B; text-transform: uppercase; letter-spacing: 0.05em; }
-    .team-size-row { display: flex; gap: 6px; }
-    .team-size-btn { flex: 1; padding: 8px 4px; font-size: 12px; font-weight: 600; border-radius: 8px; border: 1.5px solid #2D2B5B40; background: #fff; color: #2D2B5B; cursor: pointer; font-family: inherit; }
-    .team-size-btn.active { background: #2D2B5B; color: #FFD700; border-color: #2D2B5B; }
-
     /* Screen 2 */
-    .autosave-bar { display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 4px 10px; background: #fff; border-bottom: 1px solid #ccc; }
+    .autosave-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px; background: #fff; border-bottom: 1px solid #ccc; }
+    .autosave-right { display: flex; align-items: center; gap: 4px; }
     .autosave-dot { width: 7px; height: 7px; border-radius: 50%; background: #3B6D11; }
     .autosave-label { font-size: 10px; color: #3B6D11; }
+    .unassigned-warning { font-size: 10px; color: #A32D2D; font-weight: 600; }
 
-    /* Mode bar on Screen 2 */
-    .mode-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #2D2B5B10; border-bottom: 1px solid #2D2B5B20; font-size: 11px; color: #2D2B5B; font-weight: 600; }
-    .mode-bar button { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1.5px solid #2D2B5B; background: #fff; color: #2D2B5B; cursor: pointer; font-family: inherit; font-weight: 600; }
+    /* Team config */
+    .team-size-btn { flex: 1; padding: 8px 4px; font-size: 11px; font-weight: 600; border-radius: 8px; border: 1.5px solid #2D2B5B40; background: #fff; color: #2D2B5B; cursor: pointer; font-family: inherit; }
+    .team-size-btn.active { background: #2D2B5B; color: #FFD700; border-color: #2D2B5B; }
+    .team-structure-info { font-size: 11px; color: #2D2B5B; font-weight: 600; padding: 4px 0; min-height: 18px; }
+    .team-structure-info.error { color: #A32D2D; }
 
-    /* Team scoreboard on Screen 2 */
+    /* Team scoreboard */
     .team-scoreboard { background: #fff; border-bottom: 1px solid #ccc; padding: 6px 8px; }
     .team-scoreboard-title { font-size: 10px; font-weight: 700; color: #2D2B5B; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
     .team-scores-row { display: flex; gap: 6px; flex-wrap: wrap; }
     .team-score-pill { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
 
+    /* Grid */
     .grid-wrap { flex: 1; overflow-y: auto; background: #fff; }
     table.xl { width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; table-layout: fixed; }
     table.xl thead th:nth-child(1) { width: 34%; }
@@ -120,20 +90,20 @@
     table.xl tbody td.remove-col { text-align: center; cursor: pointer; color: #A32D2D; font-size: 14px; font-weight: 700; }
     table.xl tbody td.team-col { text-align: center; }
     table.xl tbody td.team-col select { width: 100%; border: none; background: transparent; font-size: 10px; font-family: Arial, sans-serif; padding: 0; outline: none; }
+    table.xl tbody td.team-col.oversize { background: #FFEBEE !important; }
 
     /* Individual rankings */
     table.xl tbody tr.rank-gold td { background: #FFF9E0; }
     table.xl tbody tr.rank-silver td { background: #F5F5F5; }
     table.xl tbody tr.rank-bronze td { background: #FDF3ED; }
 
-    /* Team colours — 6 teams */
+    /* Team colours */
     table.xl tbody tr.team-1 td { background: #E8F0FE; }
     table.xl tbody tr.team-2 td { background: #FCE8E6; }
     table.xl tbody tr.team-3 td { background: #E6F4EA; }
     table.xl tbody tr.team-4 td { background: #FEF7E0; }
     table.xl tbody tr.team-5 td { background: #F3E8FD; }
     table.xl tbody tr.team-6 td { background: #E8F6FD; }
-    /* Team separator row */
     table.xl tbody tr.team-header td { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 6px; }
     table.xl tbody tr.team-header.team-1 td { background: #C5D8FF; color: #1a3a7a; }
     table.xl tbody tr.team-header.team-2 td { background: #FFCDD2; color: #7a1a1a; }
@@ -142,7 +112,7 @@
     table.xl tbody tr.team-header.team-5 td { background: #E1BEE7; color: #4a1a5a; }
     table.xl tbody tr.team-header.team-6 td { background: #B3E5FC; color: #0d3a5a; }
 
-    /* Team pill colours */
+    /* Team pills */
     .team-pill-1 { background: #C5D8FF; color: #1a3a7a; }
     .team-pill-2 { background: #FFCDD2; color: #7a1a1a; }
     .team-pill-3 { background: #C8E6C9; color: #1a4a1a; }
@@ -181,6 +151,8 @@
     .btn-danger { background: #A32D2D; color: #fff; }
     .hc-number { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #2D2B5B; font-size: 20px; font-weight: 700; text-align: center; color: #2D2B5B; background: #fff; }
     .hc-number:focus { outline: none; box-shadow: 0 0 0 3px #2D2B5B20; }
+    .name-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #2D2B5B40; font-size: 15px; background: #fff; color: #000; }
+    .name-input:focus { outline: none; border-color: #2D2B5B; }
   </style>
 </head>
 <body>
@@ -197,17 +169,14 @@
     </div>
   </div>
   <div class="s1-body">
-
     <div class="field-group">
       <div class="field-label">Round date</div>
       <input class="field-input" id="roundDate" type="date"/>
     </div>
-
     <div id="s1Error" style="display:none" class="error-box">
       <span id="s1ErrorMsg"></span>
       <span class="error-retry">Tap Load Players to retry</span>
     </div>
-
     <div class="btn-pair">
       <button class="big-btn btn-outline" onclick="showLastRound()">
         <span class="bi">📋</span>
@@ -220,13 +189,12 @@
         <span class="bs">Sets up new round</span>
       </button>
     </div>
-
     <div id="s1Status" class="status-bar status-neutral">Loading…</div>
   </div>
 </div>
 
 
-<!-- SCREEN 2 — Score Entry -->
+<!-- SCREEN 2 -->
 <div id="screen2" class="screen">
   <div class="header">
     <button class="header-back" onclick="goBack()">‹</button>
@@ -238,8 +206,11 @@
   </div>
 
   <div class="autosave-bar">
-    <div class="autosave-dot" id="saveDot"></div>
-    <span class="autosave-label" id="saveLabel">Ready</span>
+    <span class="unassigned-warning" id="unassignedWarning" style="display:none"></span>
+    <div class="autosave-right">
+      <div class="autosave-dot" id="saveDot"></div>
+      <span class="autosave-label" id="saveLabel">Ready</span>
+    </div>
   </div>
 
   <!-- Game mode toggle -->
@@ -251,25 +222,26 @@
     </div>
   </div>
 
-  <!-- Team config (hidden in individual mode) -->
+  <!-- Team config -->
   <div id="teamConfig" style="display:none; padding:8px 10px; background:#f0f0f8; border-bottom:1px solid #ddd;">
     <div class="field-label" style="margin-bottom:5px;">Team size</div>
-    <div class="team-size-row">
+    <div style="display:flex; gap:6px; margin-bottom:6px;">
       <button class="team-size-btn active" id="size2" onclick="setTeamSize(2)">Pairs (2)</button>
       <button class="team-size-btn" id="size3" onclick="setTeamSize(3)">Triples (3)</button>
-      <button class="team-size-btn" id="size4" onclick="setFoursome(4)">Fours (4)</button>
+      <button class="team-size-btn" id="size4" onclick="setTeamSize(4)">Fours (4)</button>
     </div>
+    <div class="team-structure-info" id="teamStructureInfo"></div>
     <div style="margin-top:8px; display:flex; gap:8px;">
       <button onclick="randomAssign()" style="flex:1;padding:9px;background:#2D2B5B;color:#FFD700;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
         🎲 Random assign
       </button>
-      <button onclick="clearTeams()" style="flex:1;padding:9px;background:#e8e8e8;color:#555;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
-        Clear teams
+      <button onclick="addWalkupPlayer()" style="flex:1;padding:9px;background:#3B6D11;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
+        ➕ Add player
       </button>
     </div>
   </div>
 
-  <!-- Team scoreboard (shown in team mode) -->
+  <!-- Team scoreboard -->
   <div id="teamScoreboard" style="display:none;" class="team-scoreboard">
     <div class="team-scoreboard-title">Team scores (top 2)</div>
     <div class="team-scores-row" id="teamScoresPills"></div>
@@ -278,7 +250,7 @@
   <div class="grid-wrap">
     <table class="xl">
       <thead>
-        <tr id="gridHeader">
+        <tr>
           <th class="left">Player</th>
           <th>HC</th>
           <th>Score</th>
@@ -289,6 +261,14 @@
       <tbody id="scoreGrid"></tbody>
     </table>
   </div>
+
+  <!-- Add player button in individual mode -->
+  <div style="padding:6px 10px; background:#f8f8f8; border-top:1px solid #ddd;" id="addPlayerBar">
+    <button onclick="addWalkupPlayer()" style="width:100%;padding:8px;background:#3B6D11;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
+      ➕ Add walk-up player
+    </button>
+  </div>
+
   <div style="padding:10px;">
     <button id="saveRoundBtn" onclick="saveRound()"
       style="width:100%;padding:14px;background:#2D2B5B;color:#FFD700;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">
@@ -298,7 +278,7 @@
 </div>
 
 
-<!-- SCREEN 3 — Results -->
+<!-- SCREEN 3 -->
 <div id="screen3" class="screen">
   <div class="header">
     <button class="header-back" onclick="goBack()">‹</button>
@@ -367,6 +347,28 @@
   </div>
 </div>
 
+<!-- Walk-up player dialog -->
+<div class="overlay" id="walkupOverlay">
+  <div class="dialog">
+    <div class="dialog-title">Add walk-up player</div>
+    <div class="dialog-body">Enter player name — if they're in the system their handicap will be loaded automatically.</div>
+    <div class="field-group">
+      <div class="field-label">Player name</div>
+      <input class="name-input" id="walkupName" type="text" placeholder="First Last" autocomplete="off"
+        onkeydown="if(event.key==='Enter') lookupWalkupPlayer()"/>
+    </div>
+    <div id="walkupHCRow" style="display:none;" class="field-group">
+      <div class="field-label">Starting handicap</div>
+      <input class="hc-number" id="walkupHC" type="number" min="0" max="54" placeholder="e.g. 24" inputmode="numeric"/>
+    </div>
+    <div id="walkupStatus" style="font-size:12px; color:#3B6D11; text-align:center; min-height:16px;"></div>
+    <div class="dialog-btns">
+      <button class="dialog-btn btn-cancel" onclick="closeOverlay('walkupOverlay')">Cancel</button>
+      <button class="dialog-btn btn-confirm" id="walkupLookupBtn" onclick="lookupWalkupPlayer()">Look up</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
 // ═══════════════════════════════════════
@@ -374,19 +376,83 @@
 // ═══════════════════════════════════════
 let state = {
   currentScreen: 'screen1',
-  players: [],          // [{name, handicap, score, team, new_player, ...}]
+  players: [],
   roundDate: '',
   newPlayerQueue: [],
   currentNewPlayer: null,
   playerToRemove: null,
-  gameMode: 'individual', // 'individual' | 'team'
-  teamSize: 2,            // 2, 3 or 4
-  numTeams: 0,
-  teamScores: [],         // [{team, total, rank}]
+  gameMode: 'individual',
+  teamSize: 2,
+  teamScores: [],
+  walkupFoundHC: null,  // handicap found for walkup player, null if new
 };
 
 const TEAM_NAMES = ['', 'Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Team 6'];
-const TEAM_COLOURS = ['', '#C5D8FF', '#FFCDD2', '#C8E6C9', '#FFF9C4', '#E1BEE7', '#B3E5FC'];
+
+// ═══════════════════════════════════════
+// Smart team structure calculator
+// ═══════════════════════════════════════
+function calcTeamStructure(n, preferredSize) {
+  // Find the best valid team structure for n players with preferred size.
+  // Rules: all teams must have >= 2 players, sizes must differ by at most 1.
+  // Returns { numTeams, smallSize, largeSize, numLarge, numSmall, valid, description }
+
+  if (n < 2) return { valid: false, description: 'Not enough players' };
+
+  // Try preferred size first, then adjacent sizes
+  const sizesToTry = [preferredSize, preferredSize + 1, preferredSize - 1].filter(s => s >= 2);
+
+  for (const baseSize of sizesToTry) {
+    for (let numTeams = 1; numTeams <= Math.floor(n / 2); numTeams++) {
+      const base = Math.floor(n / numTeams);
+      const remainder = n % numTeams;
+
+      if (base < 2) continue;
+      if (Math.abs(base - preferredSize) > 1 && Math.abs(base + 1 - preferredSize) > 1) continue;
+
+      // remainder teams get base+1, rest get base
+      const numLarge = remainder;
+      const numSmall = numTeams - remainder;
+
+      const desc = buildDescription(numTeams, base, numLarge);
+      return { numTeams, smallSize: base, largeSize: base + 1, numLarge, numSmall, valid: true, description: desc };
+    }
+  }
+
+  // Fallback — just divide as evenly as possible
+  const numTeams = Math.round(n / preferredSize);
+  if (numTeams < 1) return { valid: false, description: 'Not enough players' };
+  const base = Math.floor(n / numTeams);
+  const remainder = n % numTeams;
+  if (base < 2) return { valid: false, description: `Cannot form valid teams of ${preferredSize} with ${n} players` };
+  const desc = buildDescription(numTeams, base, remainder);
+  return { numTeams, smallSize: base, largeSize: base + 1, numLarge: remainder, numSmall: numTeams - remainder, valid: true, description: desc };
+}
+
+function buildDescription(numTeams, base, numLarge) {
+  const numSmall = numTeams - numLarge;
+  if (numLarge === 0) {
+    return `${numTeams} team${numTeams > 1 ? 's' : ''} of ${base}`;
+  } else if (numSmall === 0) {
+    return `${numLarge} team${numLarge > 1 ? 's' : ''} of ${base + 1}`;
+  } else {
+    return `${numSmall} team${numSmall > 1 ? 's' : ''} of ${base}, ${numLarge} of ${base + 1}`;
+  }
+}
+
+function updateTeamStructureInfo() {
+  const n = state.players.length;
+  const info = calcTeamStructure(n, state.teamSize);
+  const el = document.getElementById('teamStructureInfo');
+  if (!el) return;
+  if (info.valid) {
+    el.textContent = `${n} players → ${info.description}`;
+    el.className = 'team-structure-info';
+  } else {
+    el.textContent = info.description;
+    el.className = 'team-structure-info error';
+  }
+}
 
 // ═══════════════════════════════════════
 // Navigation
@@ -405,19 +471,14 @@ function goBack() { showScreen('screen1'); }
 async function init() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('roundDate').value = today;
-
   try {
     const resp = await fetch('/auth/status');
     const data = await resp.json();
     updateStatus(data.last_round_date ? `Last round: ${data.last_round_date}` : 'Ready');
-  } catch(e) {
-    updateStatus('Ready');
-  }
+  } catch(e) { updateStatus('Ready'); }
 
   const day = new Date(today + 'T12:00:00').getDay();
-  if (day === 1 || day === 4) {
-    loadPlayers();
-  }
+  if (day === 1 || day === 4) loadPlayers();
 }
 
 function updateStatus(msg, type = 'neutral') {
@@ -432,54 +493,34 @@ function showS1Error(msg) {
   updateStatus('Load failed', 'danger');
 }
 
-function clearS1Error() {
-  document.getElementById('s1Error').style.display = 'none';
-}
+function clearS1Error() { document.getElementById('s1Error').style.display = 'none'; }
 
 // ═══════════════════════════════════════
 // Load Players
 // ═══════════════════════════════════════
 async function loadPlayers() {
   clearS1Error();
-
   const date = document.getElementById('roundDate').value;
   if (!date) { showS1Error('Please select a round date.'); return; }
-
   const day = new Date(date + 'T12:00:00').getDay();
   if (day !== 1 && day !== 4) {
     showS1Error("MOTH's Rollup is on Mondays and Thursdays only. Tap on the date field to select the round you want.");
     return;
   }
-
   updateStatus('Loading players from Intelligent Golf…', 'neutral');
-
   try {
     const resp = await fetch('/api/load-players', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({date}),
     });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      showS1Error(err.detail || 'Failed to load players.');
-      return;
-    }
-
+    if (!resp.ok) { const err = await resp.json(); showS1Error(err.detail || 'Failed to load players.'); return; }
     const data = await resp.json();
     state.players = data.players;
     state.roundDate = data.date;
     state.newPlayerQueue = data.new_players || [];
-
-    if (state.newPlayerQueue.length > 0) {
-      processNewPlayerQueue();
-    } else {
-      openScoreEntry();
-    }
-
-  } catch(e) {
-    showS1Error('Network error. Please check your connection and try again.');
-  }
+    if (state.newPlayerQueue.length > 0) processNewPlayerQueue();
+    else openScoreEntry();
+  } catch(e) { showS1Error('Network error. Please check your connection and try again.'); }
 }
 
 // ═══════════════════════════════════════
@@ -497,8 +538,7 @@ async function confirmNewPlayer() {
   const hc = parseInt(document.getElementById('newPlayerHC').value);
   if (isNaN(hc) || hc < 0 || hc > 54) { alert('Please enter a valid handicap (0–54).'); return; }
   await fetch('/api/new-player', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({name: state.currentNewPlayer, handicap: hc}),
   });
   const p = state.players.find(p => p.name === state.currentNewPlayer);
@@ -526,6 +566,89 @@ function confirmRemovePlayer() {
   state.players = state.players.filter(p => p.name !== state.playerToRemove);
   state.playerToRemove = null;
   closeOverlay('removePlayerOverlay');
+  updateTeamStructureInfo();
+  renderGrid();
+}
+
+// ═══════════════════════════════════════
+// Walk-up player (manual add)
+// ═══════════════════════════════════════
+function addWalkupPlayer() {
+  document.getElementById('walkupName').value = '';
+  document.getElementById('walkupHCRow').style.display = 'none';
+  document.getElementById('walkupStatus').textContent = '';
+  document.getElementById('walkupLookupBtn').textContent = 'Look up';
+  document.getElementById('walkupLookupBtn').onclick = lookupWalkupPlayer;
+  state.walkupFoundHC = null;
+  document.getElementById('walkupOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('walkupName').focus(), 100);
+}
+
+async function lookupWalkupPlayer() {
+  const name = document.getElementById('walkupName').value.trim();
+  if (!name) { alert('Please enter a player name.'); return; }
+
+  // Check not already in the list
+  if (state.players.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+    document.getElementById('walkupStatus').textContent = 'Player is already in the round.';
+    document.getElementById('walkupStatus').style.color = '#A32D2D';
+    return;
+  }
+
+  document.getElementById('walkupStatus').textContent = 'Looking up…';
+  document.getElementById('walkupStatus').style.color = '#888';
+
+  try {
+    const resp = await fetch('/api/lookup-player', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name}),
+    });
+    const data = await resp.json();
+
+    if (data.found) {
+      state.walkupFoundHC = data.handicap;
+      document.getElementById('walkupStatus').textContent = `Found — handicap ${data.handicap}`;
+      document.getElementById('walkupStatus').style.color = '#3B6D11';
+      document.getElementById('walkupHCRow').style.display = 'none';
+      document.getElementById('walkupLookupBtn').textContent = 'Add player';
+      document.getElementById('walkupLookupBtn').onclick = confirmWalkupPlayer;
+    } else {
+      state.walkupFoundHC = null;
+      document.getElementById('walkupStatus').textContent = 'New player — enter starting handicap';
+      document.getElementById('walkupStatus').style.color = '#2D2B5B';
+      document.getElementById('walkupHCRow').style.display = 'flex';
+      document.getElementById('walkupHC').value = '';
+      document.getElementById('walkupLookupBtn').textContent = 'Add player';
+      document.getElementById('walkupLookupBtn').onclick = confirmWalkupPlayer;
+    }
+  } catch(e) {
+    document.getElementById('walkupStatus').textContent = 'Lookup failed — enter handicap manually';
+    document.getElementById('walkupStatus').style.color = '#A32D2D';
+    document.getElementById('walkupHCRow').style.display = 'flex';
+    document.getElementById('walkupLookupBtn').textContent = 'Add player';
+    document.getElementById('walkupLookupBtn').onclick = confirmWalkupPlayer;
+  }
+}
+
+async function confirmWalkupPlayer() {
+  const name = document.getElementById('walkupName').value.trim();
+  if (!name) return;
+
+  let hc = state.walkupFoundHC;
+
+  if (hc === null) {
+    hc = parseInt(document.getElementById('walkupHC').value);
+    if (isNaN(hc) || hc < 0 || hc > 54) { alert('Please enter a valid handicap (0–54).'); return; }
+    // Save new player to sheet
+    await fetch('/api/new-player', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, handicap: hc}),
+    });
+  }
+
+  state.players.push({ name, handicap: hc, score: null, team: null, new_player: false });
+  closeOverlay('walkupOverlay');
+  updateTeamStructureInfo();
   renderGrid();
 }
 
@@ -538,61 +661,150 @@ function setGameMode(mode) {
   document.getElementById('modeTeam').classList.toggle('active', mode === 'team');
   document.getElementById('teamConfig').style.display = mode === 'team' ? 'block' : 'none';
   document.getElementById('teamScoreboard').style.display = mode === 'team' ? 'block' : 'none';
+  document.getElementById('addPlayerBar').style.display = mode === 'individual' ? 'block' : 'none';
 
   if (mode === 'individual') {
-    // Clear all team assignments
     state.players.forEach(p => p.team = null);
   }
+  updateTeamStructureInfo();
+  updateUnassignedWarning();
   renderGrid();
 }
 
+// ═══════════════════════════════════════
+// Team size
+// ═══════════════════════════════════════
 function setTeamSize(size) {
   state.teamSize = size;
   [2, 3, 4].forEach(s => {
     document.getElementById(`size${s}`).classList.toggle('active', s === size);
   });
-}
-
-function setFoursome(size) {
-  setTeamSize(size);
+  // Auto-clear teams when format changes
+  state.players.forEach(p => p.team = null);
+  updateTeamStructureInfo();
+  updateUnassignedWarning();
+  renderGrid();
 }
 
 // ═══════════════════════════════════════
-// Team assignment
+// Team assignment validation
+// ═══════════════════════════════════════
+function getTeamCounts() {
+  const counts = {};
+  state.players.forEach(p => {
+    if (p.team) counts[p.team] = (counts[p.team] || 0) + 1;
+  });
+  return counts;
+}
+
+function getMaxTeamSize() {
+  // Based on structure calculator, max allowed size is preferredSize + 1
+  const info = calcTeamStructure(state.players.length, state.teamSize);
+  return info.valid ? info.largeSize : state.teamSize + 1;
+}
+
+function validateTeamAssignment(name, newTeam) {
+  // Check if assigning this player to newTeam would oversize the team
+  if (!newTeam) return true; // unassigning is always ok
+  const counts = getTeamCounts();
+  const currentTeam = state.players.find(p => p.name === name)?.team;
+  // Simulate the new count
+  const newCount = (counts[newTeam] || 0) + (currentTeam === newTeam ? 0 : 1);
+  const maxSize = getMaxTeamSize();
+  if (newCount > maxSize) {
+    alert(`Team ${newTeam} already has ${counts[newTeam] || 0} player${(counts[newTeam] || 0) !== 1 ? 's' : ''}. Maximum team size is ${maxSize} for this format.`);
+    return false;
+  }
+  return true;
+}
+
+function updateUnassignedWarning() {
+  const el = document.getElementById('unassignedWarning');
+  if (state.gameMode !== 'team') { el.style.display = 'none'; return; }
+  const unassigned = state.players.filter(p => !p.team).length;
+  if (unassigned > 0) {
+    el.textContent = `${unassigned} player${unassigned > 1 ? 's' : ''} unassigned`;
+    el.style.display = 'inline';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function checkAutoAssignLast() {
+  // If only one player unassigned and only one team has room, auto-assign them
+  if (state.gameMode !== 'team') return;
+  const unassigned = state.players.filter(p => !p.team);
+  if (unassigned.length !== 1) return;
+
+  const info = calcTeamStructure(state.players.length, state.teamSize);
+  if (!info.valid) return;
+
+  const counts = getTeamCounts();
+  const maxSize = info.largeSize;
+
+  // Find teams that still have room
+  const teamsWithRoom = [];
+  for (let t = 1; t <= info.numTeams; t++) {
+    if ((counts[t] || 0) < maxSize) teamsWithRoom.push(t);
+  }
+
+  if (teamsWithRoom.length === 1) {
+    unassigned[0].team = teamsWithRoom[0];
+    state.players.sort((a, b) => (a.team || 99) - (b.team || 99));
+    updateUnassignedWarning();
+    renderGrid();
+  }
+}
+
+// ═══════════════════════════════════════
+// Random assign
 // ═══════════════════════════════════════
 function randomAssign() {
   const n = state.players.length;
-  const size = state.teamSize;
-  const numTeams = Math.ceil(n / size);
-  state.numTeams = numTeams;
+  const info = calcTeamStructure(n, state.teamSize);
+  if (!info.valid) { alert(info.description); return; }
 
-  // Shuffle indices
+  // Shuffle
   const indices = [...Array(n).keys()];
   for (let i = n - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
 
-  // Assign teams evenly
+  // Assign: first numLarge teams get largeSize players, rest get smallSize
+  // Build team slots
+  const slots = [];
+  for (let t = 1; t <= info.numTeams; t++) {
+    const size = t <= info.numLarge ? info.largeSize : info.smallSize;
+    for (let s = 0; s < size; s++) slots.push(t);
+  }
+
   indices.forEach((playerIdx, i) => {
-    state.players[playerIdx].team = (i % numTeams) + 1;
+    state.players[playerIdx].team = slots[i];
   });
 
-  // Sort players by team
   state.players.sort((a, b) => (a.team || 99) - (b.team || 99));
+  updateUnassignedWarning();
   renderGrid();
 }
 
 function clearTeams() {
   state.players.forEach(p => p.team = null);
+  updateUnassignedWarning();
   renderGrid();
 }
 
 function onTeamChange(name, teamNum) {
+  if (teamNum !== 0 && !validateTeamAssignment(name, teamNum)) {
+    // Revert the dropdown — re-render grid
+    renderGrid();
+    return;
+  }
   const p = state.players.find(p => p.name === name);
   if (p) p.team = teamNum === 0 ? null : teamNum;
-  // Re-sort by team
   state.players.sort((a, b) => (a.team || 99) - (b.team || 99));
+  updateUnassignedWarning();
+  checkAutoAssignLast();
   renderGrid();
 }
 
@@ -602,13 +814,14 @@ function getNumTeams() {
 }
 
 // ═══════════════════════════════════════
-// Score Entry
+// Score entry
 // ═══════════════════════════════════════
 function openScoreEntry() {
   const dateLabel = new Date(state.roundDate + 'T12:00:00').toLocaleDateString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
   });
   document.getElementById('s2DateLabel').textContent = `MOTH's Rollup · ${dateLabel}`;
+  updateTeamStructureInfo();
   renderGrid();
   showScreen('screen2');
 }
@@ -618,38 +831,38 @@ function renderGrid() {
   tbody.innerHTML = '';
   const isTeam = state.gameMode === 'team';
   const numTeams = getNumTeams();
+  const counts = getTeamCounts();
+  const maxSize = getMaxTeamSize();
 
-  // Update header
   document.getElementById('lastColHeader').textContent = isTeam ? 'Team' : '✕';
+  document.getElementById('addPlayerBar').style.display = isTeam ? 'none' : 'block';
 
   let currentTeam = null;
 
   state.players.forEach((p, i) => {
-    // Team header separator row
     if (isTeam && p.team && p.team !== currentTeam) {
       currentTeam = p.team;
       const headerRow = document.createElement('tr');
       headerRow.className = `team-header team-${p.team}`;
-      headerRow.innerHTML = `<td colspan="5">${TEAM_NAMES[p.team]}</td>`;
+      const teamCount = counts[p.team] || 0;
+      const oversized = teamCount > maxSize;
+      headerRow.innerHTML = `<td colspan="5">${TEAM_NAMES[p.team]} · ${teamCount} player${teamCount !== 1 ? 's' : ''}${oversized ? ' ⚠ too many' : ''}</td>`;
       tbody.appendChild(headerRow);
     }
 
     const tr = document.createElement('tr');
     tr.setAttribute('data-name', p.name);
+    if (isTeam && p.team) tr.classList.add(`team-${p.team}`);
 
-    // Team colour class
-    if (isTeam && p.team) {
-      tr.classList.add(`team-${p.team}`);
-    }
-
-    // Last column — remove button (individual) or team dropdown (team)
     let lastCol;
     if (isTeam) {
+      const teamCount = p.team ? (counts[p.team] || 0) : 0;
+      const oversized = p.team && teamCount > maxSize;
       const options = ['<option value="0">—</option>'];
       for (let t = 1; t <= Math.max(6, numTeams + 1); t++) {
         options.push(`<option value="${t}" ${p.team === t ? 'selected' : ''}>${TEAM_NAMES[t]}</option>`);
       }
-      lastCol = `<td class="team-col"><select onchange="onTeamChange('${p.name}', parseInt(this.value))">${options.join('')}</select></td>`;
+      lastCol = `<td class="team-col${oversized ? ' oversize' : ''}"><select onchange="onTeamChange('${p.name}', parseInt(this.value))">${options.join('')}</select></td>`;
     } else {
       lastCol = `<td class="remove-col" onclick="promptRemovePlayer('${p.name}')">✕</td>`;
     }
@@ -685,22 +898,16 @@ function updateGridDisplay() {
       cell.innerHTML = '';
     }
   });
-
-  if (state.gameMode === 'team') {
-    updateTeamScoreboard();
-  } else {
-    updateIndividualRankings();
-  }
+  if (state.gameMode === 'team') updateTeamScoreboard();
+  else updateIndividualRankings();
 }
 
 function updateIndividualRankings() {
   const rows = document.querySelectorAll('#scoreGrid tr:not(.team-header)');
   rows.forEach(r => r.classList.remove('rank-gold', 'rank-silver', 'rank-bronze'));
-
   const scored = state.players
     .filter(p => p.score !== null && p.score !== undefined && p.score !== '')
     .sort((a, b) => Number(b.score) - Number(a.score));
-
   ['rank-gold', 'rank-silver', 'rank-bronze'].forEach((cls, rank) => {
     if (!scored[rank]) return;
     const row = document.querySelector(`#scoreGrid tr[data-name="${scored[rank].name}"]`);
@@ -711,9 +918,7 @@ function updateIndividualRankings() {
 function updateTeamScoreboard() {
   const pills = document.getElementById('teamScoresPills');
   pills.innerHTML = '';
-
   if (!state.teamScores || state.teamScores.length === 0) return;
-
   state.teamScores.forEach(t => {
     const pill = document.createElement('div');
     pill.className = `team-score-pill team-pill-${t.team}`;
@@ -743,82 +948,67 @@ async function recalculate() {
   setSaveState('saving');
   try {
     const resp = await fetch('/api/autosave', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        date: state.roundDate,
-        players: state.players,
-        team_mode: state.gameMode === 'team',
-      }),
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ date: state.roundDate, players: state.players, team_mode: state.gameMode === 'team' }),
     });
     const data = await resp.json();
     data.players.forEach(serverPlayer => {
       const p = state.players.find(p => p.name === serverPlayer.name);
-      if (p) {
-        p.new_handicap = serverPlayer.new_handicap;
-        p.adjustment = serverPlayer.adjustment;
-        p.score = serverPlayer.score;
-      }
+      if (p) { p.new_handicap = serverPlayer.new_handicap; p.adjustment = serverPlayer.adjustment; p.score = serverPlayer.score; }
     });
     state.teamScores = data.team_scores || [];
     updateGridDisplay();
     setSaveState('saved');
-  } catch(e) {
-    setSaveState('error');
-    console.error('Calculate error', e);
-  }
+  } catch(e) { setSaveState('error'); console.error('Calculate error', e); }
 }
 
 async function saveRound() {
+  // Validate teams before saving
+  if (state.gameMode === 'team') {
+    const unassigned = state.players.filter(p => !p.team).length;
+    if (unassigned > 0) {
+      alert(`${unassigned} player${unassigned > 1 ? 's are' : ' is'} not assigned to a team. Please assign all players before saving.`);
+      return;
+    }
+    const counts = getTeamCounts();
+    const maxSize = getMaxTeamSize();
+    const oversized = Object.entries(counts).filter(([, count]) => count > maxSize);
+    if (oversized.length > 0) {
+      alert(`Some teams have too many players. Please fix team assignments before saving.`);
+      return;
+    }
+  }
+
   const btn = document.getElementById('saveRoundBtn');
   btn.textContent = 'Saving…';
   btn.disabled = true;
-
   try {
     const resp = await fetch('/api/save-round', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        date: state.roundDate,
-        players: state.players,
-        team_mode: state.gameMode === 'team',
-      }),
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ date: state.roundDate, players: state.players, team_mode: state.gameMode === 'team' }),
     });
-
     if (!resp.ok) {
       const err = await resp.json();
       alert('Save failed: ' + (err.detail || 'Unknown error'));
-      btn.textContent = 'Save Round';
-      btn.disabled = false;
-      return;
+      btn.textContent = 'Save Round'; btn.disabled = false; return;
     }
-
     const data = await resp.json();
     renderResults(data.players, data.date, true);
     showScreen('screen3');
-
   } catch(e) {
     alert('Network error saving round.');
-    btn.textContent = 'Save Round';
-    btn.disabled = false;
+    btn.textContent = 'Save Round'; btn.disabled = false;
   }
 }
 
 function setSaveState(s) {
   const dot = document.getElementById('saveDot');
   const label = document.getElementById('saveLabel');
-  if (s === 'saving') {
-    dot.style.background = '#888'; label.style.color = '#888'; label.textContent = 'Calculating…';
-  } else if (s === 'saved') {
-    dot.style.background = '#3B6D11'; label.style.color = '#3B6D11'; label.textContent = 'Ready';
-  } else {
-    dot.style.background = '#A32D2D'; label.style.color = '#A32D2D'; label.textContent = 'Error';
-  }
+  if (s === 'saving') { dot.style.background = '#888'; label.style.color = '#888'; label.textContent = 'Calculating…'; }
+  else if (s === 'saved') { dot.style.background = '#3B6D11'; label.style.color = '#3B6D11'; label.textContent = 'Ready'; }
+  else { dot.style.background = '#A32D2D'; label.style.color = '#A32D2D'; label.textContent = 'Error'; }
 }
 
-// ═══════════════════════════════════════
-// Last Round / Results
-// ═══════════════════════════════════════
 async function showLastRound() {
   try {
     const resp = await fetch('/api/last-round');
@@ -826,9 +1016,7 @@ async function showLastRound() {
     const data = await resp.json();
     renderResults(data.players, data.date, false);
     showScreen('screen3');
-  } catch(e) {
-    alert('Network error loading last round.');
-  }
+  } catch(e) { alert('Network error loading last round.'); }
 }
 
 function renderResults(players, dateStr, isCurrent) {
@@ -837,41 +1025,21 @@ function renderResults(players, dateStr, isCurrent) {
   tbody.innerHTML = '';
   const medals = ['g', 's', 'b'];
   const rowClass = ['gold', 'silver', 'bronze'];
-
-  // Sort by score descending
   const sorted = [...players].filter(p => p.score !== null && p.score !== undefined)
     .sort((a, b) => Number(b.score) - Number(a.score));
-
   sorted.forEach((p, i) => {
     const tr = document.createElement('tr');
     if (i < 3) tr.className = rowClass[i];
-    const medalCell = i < 3
-      ? `<span class="medal ${medals[i]}">${i + 1}</span>`
-      : `<span style="font-size:10px;color:#aaa">${i + 1}</span>`;
-    tr.innerHTML = `
-      <td class="c">${medalCell}</td>
-      <td>${p.name}</td>
-      <td class="c" style="font-weight:600">${p.score}</td>
-      <td class="c" style="font-size:10px">${p.new_handicap ?? ''}</td>
-    `;
+    const medalCell = i < 3 ? `<span class="medal ${medals[i]}">${i + 1}</span>` : `<span style="font-size:10px;color:#aaa">${i + 1}</span>`;
+    tr.innerHTML = `<td class="c">${medalCell}</td><td>${p.name}</td><td class="c" style="font-weight:600">${p.score}</td><td class="c" style="font-size:10px">${p.new_handicap ?? ''}</td>`;
     tbody.appendChild(tr);
   });
-
   document.getElementById('s3Status').textContent = isCurrent ? 'Handicaps updated · Sheet saved' : dateStr;
   document.getElementById('s3Status').className = isCurrent ? 'status-bar status-success' : 'status-bar status-neutral';
 }
 
-// ═══════════════════════════════════════
-// Helpers
-// ═══════════════════════════════════════
-function confirmReload() {
-  closeOverlay('reloadOverlay');
-  state.players = [];
-  loadPlayers();
-}
-
+function confirmReload() { closeOverlay('reloadOverlay'); state.players = []; loadPlayers(); }
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
-
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
