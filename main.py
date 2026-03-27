@@ -162,3 +162,22 @@ async def last_round():
     except Exception as e:
         raise HTTPException(500, f"Could not load last round: {str(e)}")
     return {"players": results, "date": date}
+
+
+class LookupRequest(BaseModel):
+    name: str
+
+
+@app.post("/api/lookup-player")
+async def lookup_player(body: LookupRequest):
+    """Look up a player by name — returns handicap if found, not found otherwise."""
+    try:
+        all_players = get_all_players(SHEET_ID, get_context())
+    except Exception as e:
+        raise HTTPException(500, f"Could not read player list: {str(e)}")
+
+    for p in all_players:
+        if p["name"].strip().lower() == body.name.strip().lower():
+            return {"found": True, "name": p["name"], "handicap": p["handicap"]}
+
+    return {"found": False, "name": body.name}
