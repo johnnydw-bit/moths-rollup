@@ -1,126 +1,156 @@
-"""
-Intelligent Golf scraper for MOTH's Rollup.
-Uses httpx only - no browser required.
-"""
+# Bramley Rollup - backend/scraper.py
+# Playwright-based scrapers for Intelligent Golf (bramleygolfclub.co.uk instance)
 
-from datetime import datetime
-import httpx
-from bs4 import BeautifulSoup
+import re
+from playwright.async_api import async_playwright
 
 
-BASE_URL = "https://www.bramleygolfclub.co.uk"
-LOGIN_URL = f"{BASE_URL}/login.php"
-CONSENT_URL = f"{BASE_URL}/ttbconsent.php"
-BOOKING_URL = f"{BASE_URL}/memberbooking/"
+async def _login(page, ig_username: str, ig_pin: str,
+               ig_url: str = "https://www.bramleygolfclub.co.uk"):
+    """Shared login helper — logs into the club's IG instance."""
+    await page.goto(f"{ig_url}/member/index.php")
+    await page.fill('input[name="memberid"]', ig_username)
+    await page.fill('input[name="pin"]', ig_pin)
+    await page.click('input[type="submit"]')
+    await page.wait_for_load_state("networkidle")
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) "
-        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 "
-        "Mobile/15E148 Safari/604.1"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-GB,en;q=0.9",
-}
+    # Handle consent/cookie page if it appears
+    current = page.url
+    if "consent" in current or "cookie" in current:
+        try:
+            await page.click('input[type="submit"], button[type="submit"]')
+            await page.wait_for_load_state("networkidle")
+        except Exception:
+            pass
 
 
-async def scrape_players(username: str, pin: str, date_str: str) -> list[str]:
+# ---------------------------------------------------------------------------
+# scrape_players — scrape the booking list for a specific date
+# ---------------------------------------------------------------------------
+
+async def scrape_players(
+    ig_username: str,
+    ig_pin: str,
+    date_str: str,
+    ig_search_term: str,
+    ig_url: str = "https://www.bramleygolfclub.co.uk",
+) -> dict:
     """
-    Scrape MOTH's Rollup player names for the given date.
-    """
-    dt = datetime.strptime(date_str, "%Y-%m-%d")
-    date_param = dt.strftime("%d-%m-%Y")
+    Log in to the club's IG instance and scrape the booking list for a given date.
 
-    async with httpx.AsyncClient(
-        headers=HEADERS,
-        follow_redirects=True,
-        timeout=30.0,
-    ) as client:
+    date_str: dd-mm-yyyy format
+    ig_search_term: contact name search term e.g. "MOTH"
+    ig_url: base URL of the club's IG instance e.g. "https://www.bramleygolfclub.co.uk"
 
-        # Step 1: GET login page for CSRF token
-        resp = await client.get(LOGIN_URL)
-        resp.raise_for_status()
-
-        soup = BeautifulSoup(resp.text, "html.parser")
-        csrf_input = soup.find("input", {"name": "_csrf_token"})
-        if not csrf_input:
-            raise Exception("Could not find CSRF token on login page.")
-        csrf_token = csrf_input.get("value", "")
-
-        # Step 2: POST login
-        login_data = {
-            "task": "login",
-            "topmenu": "1",
-            "memberid": username,
-            "pin": pin,
-            "cachemid": "1",
-            "_csrf_token": csrf_token,
-            "Submit": "Login",
+    Returns:
+        {
+            "names":     [str, ...],   # player names in booking order
+            "tee_times": int,          # number of distinct tee time slots
+            "tee_start": str,          # first tee time e.g. "08:00"
         }
-        resp = await client.post(LOGIN_URL, data=login_data)
-        resp.raise_for_status()
-
-        if str(resp.url).endswith("login.php"):
-            raise Exception("Login failed. Please check your username and PIN.")
-
-        # Step 3: Accept consent after login if needed
-        if "ttbconsent" in str(resp.url):
-            resp = await client.get(f"{CONSENT_URL}?action=accept")
-            resp.raise_for_status()
-
-        # Step 4: GET booking page
-        resp = await client.get(
-            BOOKING_URL,
-            params={"date": date_param, "course": "1", "group": "1"},
+    """
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) "
+                       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
         )
-        resp.raise_for_status()
+        page = await context.new_page()
+        try:
+            await _login(page, ig_username, ig_pin, ig_url)
 
-        # Accept consent if redirected there from booking page
-        if "ttbconsent" in str(resp.url):
-            resp = await client.get(f"{CONSENT_URL}?action=accept")
-            resp.raise_for_status()
-            resp = await client.get(
-                BOOKING_URL,
-                params={"date": date_param, "course": "1", "group": "1"},
+            # ── Navigate to booking sheet ────────────────────────────────────
+            await page.goto(
+                f"{ig_url}/memberbooking/"
+                f"?date={date_str}&searchterm={ig_search_term}"
             )
-            resp.raise_for_status()
+            await page.wait_for_load_state("networkidle")
 
-        if "login" in str(resp.url).lower():
-            raise Exception("Session expired or login failed.")
-
-        # Step 5: Find MOTH's rollup
-        soup = BeautifulSoup(resp.text, "html.parser")
-        rollup_wrappers = soup.find_all("div", class_="isRollup")
-
-        if not rollup_wrappers:
-            raise Exception(
-                f"No rollups found on the booking page for {date_str}. "
-                "Check the date is a Monday or Thursday."
+            # ── Extract player names ─────────────────────────────────────────
+            name_elements = await page.query_selector_all(
+                "td.booking-player a, .booking-name a, .player-name, "
+                "td.members a, .member-name"
             )
+            names = []
+            for el in name_elements:
+                text = (await el.inner_text()).strip()
+                if text and text not in names:
+                    names.append(text)
 
-        for wrapper in rollup_wrappers:
-            entrant_divs = wrapper.find_all("div", class_="rollup-entrants-list")
-            contact_div = None
-            signed_up_div = None
-            for div in entrant_divs:
-                t = div.get_text(strip=True)
-                if "Roll up Contact" in t:
-                    contact_div = div
-                elif "Signed up" in t:
-                    signed_up_div = div
+            # ── Extract tee time info ────────────────────────────────────────
+            tee_time_elements = await page.query_selector_all(
+                "td.tee-time, .booking-time, td.time, td.teetime"
+            )
+            tee_times_raw = []
+            for el in tee_time_elements:
+                text = (await el.inner_text()).strip()
+                if text and re.match(r'\d{1,2}:\d{2}', text):
+                    tee_times_raw.append(text)
 
-            if contact_div and "MOTH" in contact_div.get_text().upper():
-                if not signed_up_div:
-                    raise Exception("Found MOTH's Rollup but no players have signed up yet.")
-                italic = signed_up_div.find("i")
-                if not italic:
-                    raise Exception("Found MOTH's Rollup but could not parse player names.")
-                names = [n.strip() for n in italic.get_text(strip=True).split(",") if n.strip()]
-                if not names:
-                    raise Exception("Found MOTH's Rollup but the signed-up list is empty.")
-                return names
+            unique_tee_times = sorted(set(tee_times_raw))
+            tee_start = unique_tee_times[0] if unique_tee_times else ""
 
-        raise Exception(
-            f"Could not find MOTH's Rollup on the booking page for {date_str}. "
-            "The rollup may not be scheduled for this date."
+            return {
+                "names":     names,
+                "tee_times": len(unique_tee_times),
+                "tee_start": tee_start,
+            }
+        finally:
+            await browser.close()
+
+
+# ---------------------------------------------------------------------------
+# scrape_whs_indices — scrape the club handicap index list
+# ---------------------------------------------------------------------------
+
+async def scrape_whs_indices(
+    ig_username: str,
+    ig_pin: str,
+    ig_url: str = "https://www.bramleygolfclub.co.uk",
+) -> dict:
+    """
+    Log in to the club's IG instance and scrape the full member WHS handicap
+    index list from /hcaplist.php.
+
+    ig_url: base URL of the club's IG instance
+    Returns: {"indices": {"John Smith": 14.2, ...}}
+    """
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) "
+                       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
         )
+        page = await context.new_page()
+        try:
+            await _login(page, ig_username, ig_pin, ig_url)
+
+            # ── Navigate to handicap list ────────────────────────────────────
+            await page.goto(
+                f"{ig_url}/hcaplist.php?action=masterhcap&filter=&sort=0"
+            )
+            await page.wait_for_load_state("networkidle")
+
+            # ── Parse all rows ───────────────────────────────────────────────
+            # Structure: <table class="table table-striped">
+            #   <tbody><tr>
+            #     <td><a href="...">Player Name</a></td>
+            #     <td style="text-align:center;">14.2</td>  ← may be <span> for away HC
+            #   </tr></tbody>
+            rows = await page.query_selector_all("table.table tbody tr")
+            indices = {}
+            for row in rows:
+                name_el = await row.query_selector("td:first-child a")
+                idx_el  = await row.query_selector("td:last-child")
+                if not name_el or not idx_el:
+                    continue
+                name     = (await name_el.inner_text()).strip()
+                idx_text = (await idx_el.inner_text()).strip()
+                try:
+                    indices[name] = float(idx_text)
+                except ValueError:
+                    pass  # skip malformed rows
+
+            return {"indices": indices}
+        finally:
+            await browser.close()
